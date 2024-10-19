@@ -1,0 +1,5 @@
+[envisage.plugins]
+envisage.core = envisage.core_plugin:CorePlugin
+
+[etsdemo_data]
+demo_examples = envisage.examples._etsdemo_info:info

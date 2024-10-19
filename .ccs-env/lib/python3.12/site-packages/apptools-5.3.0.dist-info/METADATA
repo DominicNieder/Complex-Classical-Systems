@@ -1,0 +1,128 @@
+Metadata-Version: 2.1
+Name: apptools
+Version: 5.3.0
+Summary: application tools
+Home-page: https://docs.enthought.com/apptools
+Download-URL: https://www.github.com/enthought/apptools
+Author: Enthought, Inc.
+Author-email: info@enthought.com
+Maintainer: ETS Developers
+Maintainer-email: enthought-dev@enthought.com
+License: BSD
+Platform: Windows
+Platform: Linux
+Platform: Mac OS-X
+Platform: Unix
+Platform: Solaris
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Science/Research
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Operating System :: MacOS
+Classifier: Operating System :: Microsoft :: Windows
+Classifier: Operating System :: OS Independent
+Classifier: Operating System :: POSIX
+Classifier: Operating System :: Unix
+Classifier: Programming Language :: Python
+Classifier: Topic :: Scientific/Engineering
+Classifier: Topic :: Software Development
+Classifier: Topic :: Software Development :: Libraries
+Requires-Python: >=3.8
+Description-Content-Type: text/x-rst
+License-File: LICENSE.txt
+Requires-Dist: traits >=6.2.0
+Provides-Extra: docs
+Requires-Dist: enthought-sphinx-theme ; extra == 'docs'
+Requires-Dist: sphinx ; extra == 'docs'
+Provides-Extra: gui
+Requires-Dist: pyface ; extra == 'gui'
+Requires-Dist: traitsui ; extra == 'gui'
+Provides-Extra: h5
+Requires-Dist: numpy <2.0 ; extra == 'h5'
+Requires-Dist: pandas ; extra == 'h5'
+Requires-Dist: tables ; extra == 'h5'
+Provides-Extra: persistence
+Requires-Dist: numpy <2.0 ; extra == 'persistence'
+Provides-Extra: preferences
+Requires-Dist: configobj ; extra == 'preferences'
+Provides-Extra: test
+Requires-Dist: importlib-resources >=1.1.0 ; (python_version < "3.9") and extra == 'test'
+
+===========================
+apptools: application tools
+===========================
+
+Documentation: http://docs.enthought.com/apptools
+
+Source Code: http://www.github.com/enthought/apptools
+
+
+The apptools project includes a set of packages that Enthought has found
+useful in creating a number of applications.  They implement functionality
+that is commonly needed by many applications
+
+- **apptools.io**: Provides an abstraction for files and folders in a file
+  system.
+- **apptools.logger**: Convenience functions for creating logging handlers
+- **apptools.naming**: Manages naming contexts, supporting non-string data
+  types and scoped preferences
+- **apptools.persistence**: Supports pickling the state of a Python object
+  to a dictionary, which can then be flexibly applied in restoring the state of
+  the object.
+- **apptools.preferences**: Manages application preferences.
+- **apptools.selection**: Manages the communication between providers and
+  listener of selected items in an application.
+- **apptools.scripting**: A framework for automatic recording of Python
+  scripts.
+- **apptools.undo**: Supports undoing and scripting application commands.
+
+Prerequisites
+-------------
+
+All packages in apptools require:
+
+* `traits <https://github.com/enthought/traits>`_
+
+Certain sub-packages within apptools have their own specific dependencies,
+which are optional for apptools overall.
+
+The `apptools.preferences` package requires:
+
+* `configobj <http://pypi.python.org/pypi/configobj>`_
+
+The `apptools.io.h5` package requires:
+
+* `numpy <https://pypi.org/project/numpy/>`_
+* `pandas <https://pypi.org/project/pandas/>`_
+* `tables <https://pypi.org/project/tables/>`_
+
+The `apptools.persistence` package requires:
+
+* `numpy <https://pypi.org/project/numpy/>`_
+
+Many of the packages provide optional user interfaces using Pyface and
+Traitsui. In additon, many of the packages are designed to work with the
+Envisage plug-in system, althought most can be used independently:
+
+* `envisage <https://github.com/enthought/envisage>`_
+* `pyface <https://github.com/enthought/pyface>`_
+* `traitsui <https://github.com/enthought/traitsui>`_
+
+Installation
+------------
+
+To install with `apptools.preferences` dependencies::
+
+    $ pip install apptools[preferences]
+
+To install with `apptools.io.h5` dependencies::
+
+    $ pip install apptools[h5]
+
+To install with `apptools.persistence` dependencies::
+
+    $ pip install apptools[persistence]
+
+To install with additional test dependencies::
+
+    $ pip install apptools[test]
