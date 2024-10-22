@@ -22,7 +22,9 @@ def rel_koordiantes(p1:Particle,p2:Particle,box:tuple[float|int]) -> tuple[float
     dx, dy = system_shift(p1,box)  # S->S': S' is a box with p1' at its center
     print("10,10=",p1.x+dx,p1.y+dy)
     print("p2'=",(p2.x+dx)%box[0], (p2.y+dy)%box[1])
-    return(p1.x - (p2.x+dx)%box[0] , p1.y - (p2.y+dy)%box[1])
+    print("rel koordiantes=", (p1.x+dx - (p2.x+dx)%box[0] , p1.y+dy - (p2.y+dy)%box[1])
+)
+    return(p1.x +dx - (p2.x+dx)%box[0] , p1.y +dy - (p2.y+dy)%box[1])
 
 def run():
     box:tuple[float|int]=(20,20)
@@ -68,6 +70,7 @@ def run():
                 print("iter j=", j)
                 d_vec:tuple[float|int] = rel_koordiantes(par[i],par[j], box)  # rel. distance vector j -> i
                 d_abs = d_vec[0]**2+d_vec[1]**2  # distance squared
+                print("distance vector",d_vec[0],d_vec[1])
                 print("distance=",d_abs)
                 #### collision condition -> kinematics
                 if np.sqrt(d_abs) <= par[i].r+par[j].r:
