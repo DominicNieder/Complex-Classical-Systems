@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 
 from matplotlib import colors
 from matplotlib.ticker import PercentFormatter
+from matplotlib.animation import FuncAnimation, FFMpegWriter
 
 class Particle:
     def __init__(self, r:float|int, x:float|int, y:float|int, vx:float|int, vy:float|int):
@@ -30,17 +31,18 @@ def rel_koordiantes(p1:Particle,p2:Particle,box:tuple[float|int]) -> tuple[float
 
 
 ### calculating distributions
-### velocity-squared distribution
+### |v| distribution
 def collect_vabs(vx:list[list[float|int]],vy:list[list[float|int]],interval:tuple[int]) -> list[float]:
-    v_abs=np.zeors(len(vx)+(interval[1]-interval[0]))
+    v_abs=np.zeros(len(vx)+(interval[1]-interval[0]))
     for i in range(len(vx)):
         for j in range(interval[0],interval[1]):
             v_abs[i+j-interval[0]]=(np.sqrt(vx[i][j]**2+vy[i][j]**2))
     return v_abs
 
-### velocity y distribution
+### velocity x or y distribution
 def collect_v_1D(vx:list[float|int],interval:tuple[int]) -> list[float]:
     l=np.zeros(len(vx)+(interval[1]-interval[0]))
+    print(len(l))
     for i in range(len(vx)):
         for j in range(interval[0],interval[1]):
             l[i+j-interval[0]]=(vx[i][j])
@@ -48,17 +50,19 @@ def collect_v_1D(vx:list[float|int],interval:tuple[int]) -> list[float]:
    
 ### Maxwell Boltzmann distribution 
 def mw_boltzmann_distri(v_intervall:tuple[float|int], T:float|int)->tuple[list[float]]: 
-    v=np.linspace(v_intervall[0],v_intervall[1]) 
-    p=4*np.pi/(2*np.pi*T)**(3/2)*v**2 * np.exp(v**2/2/T)  # k_B=1, m=1
-    return (p,v)
+    v=np.linspace(v_intervall[0],v_intervall[1],200) 
+    p=4*np.pi/(2*np.pi*T)**(3/2)*v**2 * np.exp(-v**2/2/T)  # k_B=1, m=1
+    return (v,p)
 
 def run():
     log="Initiating\n"
-    box:tuple[float|int]=(20,20)
-    n:int=50
-    r:float|int=1.0
-    v0:float|int=0.5
-    angles=np.random.rand(n)*2*np.pi
+    box:tuple[float|int]=(70,70)  # nm
+    n:int=500
+    r:float|int=1.0  # nm
+    v0:float|int=0.5   # nm/tau
+    k_B=1  # as such will noch be used to multiply
+    temp:float = v0**2/2  # temperature of a system <E_kin> =dim/2 * k_B * T
+    angles:list[float]=np.random.rand(n)*2*np.pi
     par:list[Particle]=[Particle(
             r,
             np.random.randint(1,box[0]-1,1)[0],
@@ -68,8 +72,8 @@ def run():
             )
         for i in range(n)]   
 
-    T:int=2000
-    dt:float=1.0
+    T:int=2000  #  total time
+    dt:float=1.0  # tau
     log = log + "n_particles=" +str(n)+"\ntimesteps="+str(T)+"\ntimestep="+str(dt)+"\nbox="+str(box)+"\n" 
 
     x_data=np.zeros((n,T))
@@ -89,13 +93,13 @@ def run():
                 #  print("distance vector",d_vec[0],d_vec[1])
                 #  print("distance=",d_abs)
                 #### collision condition -> kinematics
-                if np.sqrt(d_abs) <= par[i].r+par[j].r:
+                if np.sqrt(d_abs) <= par[i].r+par[j].r and d_abs != 0:
                     d_unit:tuple[float|int] = d_vec/np.sqrt(d_abs)  # collision axis
                     #  print("!collision!: Axis",d_unit)
                     dvix , dviy= -((par[i].vx-par[j].vx)*d_unit[0]+ (par[i].vy-par[j].vy)*d_unit[1]) *d_unit
                     #  print("dv=",(dvix, dviy))
                     par[i].vx , par[i].vy = (par[i].vx+dvix) , ( par[i].vy+dviy)
-                    par[j].vx , par[j].vy = (par[j].vy-dviy) , (par[j].vy-dviy)
+                    par[j].vx , par[j].vy = (par[j].vx-dvix) , (par[j].vy-dviy)
             #  print("particle",i ," velocities:",par[i].vx,par[i].vy)
 
             par[i].x = (par[i].x+par[i].vx*dt) % box[0] 
@@ -105,23 +109,89 @@ def run():
             vx_data[i][t]=par[i].vx
             vy_data[i][t]=par[i].vy
     log=log+"Simulation complete!\n"
-    ### plotting kinetic energy
-    # e_kin = 1/2* sum([par[k].vx**2+par[k].vy**2 for k in ])
 
-    ### plotting historgam
-    n_bins = 20
 
-    # Generate velocity distributionsdistributions 
-    dist1 = collect_v_1D(vx_data,(0,200))
-    dist2 = collect_v_1D(vx_data,(1800,2000))
+    ### Analysis
+    n_bins = 10
+
+    ### collect vx
+    vx1 = collect_v_1D(vx_data,(0,int(T/10)))
+    vx2 = collect_v_1D(vx_data,(T-int(T/10),T))
     fig, axs = plt.subplots(1, 2, sharey=True, tight_layout=True)
+    axs[0].hist(vx1, bins=n_bins,density=False)
+    axs[1].hist(vx2, bins=n_bins,density=False)
+    plt.title("x-velocity distribution")
+    axs[0].set_xlabel('vx [nm/tau]')
+    axs[1].set_xlabel('vx [nm/tau]')
+    axs[0].set_ylabel('p(vx)')
+    plt.savefig("histograms-vx"+str(v0)+"big1.png")
+    plt.close()
 
-    # We can set the number of bins with the *bins* keyword argument.
-    axs[0].hist(dist1, bins=n_bins)
-    axs[1].hist(dist2, bins=n_bins)
-    # Saving figure
-    plt.savefig("histograms-vx.png")
+    ### collect vy
+    vy1 = collect_v_1D(vy_data,(0,int(T/10)))
+    vy2 = collect_v_1D(vy_data,(T-int(T/10),T))
+    fig, axs = plt.subplots(1, 2, sharey=True, tight_layout=True)
+    axs[0].hist(vy1, bins=n_bins,density=False)
+    axs[1].hist(vy2, bins=n_bins,density=False)
+    plt.title("y-velocity distributions")
+    axs[0].set_xlabel('vx [nm/tau]')
+    axs[1].set_xlabel('vx [nm/tau]')
+    axs[0].set_ylabel('occupanvy')
+    plt.savefig("histograms-vy"+str(v0)+"big1.png")
+    plt.close()
+
+    ### absolute velocities
+    v_abs1 = collect_vabs(vx_data,vy_data,(0,int(T/10)))
+    v_abs2 = collect_vabs(vx_data,vy_data,(T-int(T/10),T))
+    fig, axs = plt.subplots(1, 2, sharey=True, tight_layout=True)
+    plt.title("normed velocity distributions")
+    plt.xlabel("|v| [nm/tau]")
+    plt.ylabel("occupancy")
+    axs[0].hist(v_abs1,n_bins,density=False)
+    axs[1].hist(v_abs2,n_bins,density=False)
+    axs[0].set_xlabel('|v| [nm/tau]')
+    axs[1].set_xlabel('|v| [nm/tau]')
+    axs[0].set_ylabel('occupancy')
+    plt.savefig("maxwell_boltzmann-v_abs"+str(v0)+"big1.png")
+    plt.close()
+
+    ### Maxwell Boltzmann distribution
+    mw = mw_boltzmann_distri((0.0,1.75),temp)
+    fig=plt.plot(mw[0],mw[1])
+    plt.title("Maxwell Boltzmann distribution")
+    plt.xlabel("|v| [nm/tau]")
+    plt.ylabel("p(|x|)")    
+    plt.grid()
+    # creating histogram & maxwell-Boltzmann distribution
+    plt.savefig("maxwell_boltzmannTheory"+str(v0)+".png")
+    plt.close()
+    log=log+"plots success\n"
+    
+    ### Animation
+    scat, fig, ax = animation_plot(par[0].r, box)
+    anim = FuncAnimation(fig, animate, frames=T, fargs=(x_data, y_data, scat), interval=50, blit=True)
+    writer = FFMpegWriter(fps=10, metadata=dict(artist='Dominic Nieder'), bitrate=1800)
+    anim.save("simulation1.gif")
+    plt.show()
     return log
+
+# Initialize the scatter plot with no data
+def animate(frame, x_data, y_data, scat):
+    positions = np.c_[x_data[:, frame], y_data[:, frame]]
+    scat.set_offsets(positions)
+    return scat,
+
+def animation_plot(p_radius:float|int,box:tuple[float|int]):
+    fig, ax = plt.subplots()
+    scat = ax.scatter([], [], s=p_radius)  # Scale size for visibility
+    ax.set_xlim(box[0])
+    ax.set_ylim(box[1])
+    ax.set_title("Simulation Visualization")
+    ax.set_xlabel("X [nm]")
+    ax.set_ylabel("Y [nm]")
+    return scat, fig, ax
+
+
 
 if __name__ == "__main__":
     print(run())
