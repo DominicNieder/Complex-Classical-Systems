@@ -56,10 +56,10 @@ def mw_boltzmann_distri(v_intervall:tuple[float|int], T:float|int)->tuple[list[f
 
 def run():
     log="Initiating\n"
-    box:tuple[float|int]=(70,70)  # nm
-    n:int=500
+    box:tuple[float|int]=(20,20)  # nm
+    n:int=50
     r:float|int=1.0  # nm
-    v0:float|int=0.5   # nm/tau
+    v0:float|int=1.0   # nm/tau
     k_B=1  # as such will noch be used to multiply
     temp:float = v0**2/2  # temperature of a system <E_kin> =dim/2 * k_B * T
     angles:list[float]=np.random.rand(n)*2*np.pi
@@ -124,7 +124,7 @@ def run():
     axs[0].set_xlabel('vx [nm/tau]')
     axs[1].set_xlabel('vx [nm/tau]')
     axs[0].set_ylabel('p(vx)')
-    plt.savefig("histograms-vx"+str(v0)+"big1.png")
+    plt.savefig("histograms-vx"+str(v0)+".png")
     plt.close()
 
     ### collect vy
@@ -137,7 +137,7 @@ def run():
     axs[0].set_xlabel('vx [nm/tau]')
     axs[1].set_xlabel('vx [nm/tau]')
     axs[0].set_ylabel('occupanvy')
-    plt.savefig("histograms-vy"+str(v0)+"big1.png")
+    plt.savefig("histograms-vy"+str(v0)+".png")
     plt.close()
 
     ### absolute velocities
@@ -152,7 +152,7 @@ def run():
     axs[0].set_xlabel('|v| [nm/tau]')
     axs[1].set_xlabel('|v| [nm/tau]')
     axs[0].set_ylabel('occupancy')
-    plt.savefig("maxwell_boltzmann-v_abs"+str(v0)+"big1.png")
+    plt.savefig("maxwell_boltzmann-v_abs"+str(v0)+".png")
     plt.close()
 
     ### Maxwell Boltzmann distribution
@@ -168,10 +168,10 @@ def run():
     log=log+"plots success\n"
     
     ### Animation
-    scat, fig, ax = animation_plot(par[0].r, box)
+    scat, fig, ax = animation_plot(par[0].r*10, box)
     anim = FuncAnimation(fig, animate, frames=T, fargs=(x_data, y_data, scat), interval=50, blit=True)
     writer = FFMpegWriter(fps=10, metadata=dict(artist='Dominic Nieder'), bitrate=1800)
-    anim.save("simulation1.gif")
+    anim.save("simulation2.gif")
     plt.show()
     return log
 
