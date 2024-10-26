@@ -3,9 +3,11 @@
 !.gitignore   
 
 
-# pdfs and images
+# pdfs, images, gif, mp4 
 *.pdf
 *.png
+*.gif
+*.mp4
 
 # Latexmk
 *.fdb_latexmk

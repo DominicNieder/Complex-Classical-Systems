@@ -1,0 +1,154 @@
+\documentclass{article}
+
+
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amsfonts}
+\usepackage{tikz}
+\usepackage[plain]{algorithm}
+\usepackage{algpseudocode}
+
+\title{
+    \vspace{2in}
+    \textmd{\textbf{Homework: Hard Spheres}}\\
+    \normalsize\vspace{0.1in}\small{Due on Friday 25.10 at 10:15am}\\
+    \vspace{0.1in}
+    \vspace{3in}
+}
+
+\author{Dominic Nieder, Awais Ahmed}
+\date{\today}
+
+
+\begin{document}
+\maketitle
+
+\newpage
+
+\section{Comments and introduction to our Homework}
+We had some issues with the $\prime$-symbole in the eqautions, they don't seem to realize that there is a vector-arrow share the same space, and we couldn't make time with the many exercises of variouse modules take this problem seriously. If you have come across a simular issue and know how to fix it, we would appriciate to hear of it in the feedback. \\
+Furthermore we are using this homework to improve and practice writing skills (as long as we find the time for it) and to give the reader a good understanding of our work and our line of thought. So feedback along those lines would also be appriciated.  \\
+
+For this homework, where the collision had to be derived we thought for a rigorous description of what we did, the physical model needed to be described and derived. Thus we start with a Physical Model in Chapter 1, then we shortly describe how the implement the collisions 
+
+\section{Physical Model}
+
+    The physical model of the phere interactions is the elastic collision. The elastic collision can be described by the conservation of momentum. This follows from Newtons second law of motion in a closed system.
+    \begin{align*}
+        \frac{\partial \vec{P}_{tot}}{\partial t} &= \vec{F}_{ext}=0  \\
+        \Leftrightarrow \vec{P}_{tot}&=\text{const} 
+    \end{align*}
+    Here we have $\vec{P}_{tot}=\sum_{n=1}^{N}\vec{p}_n$ of an $N$ particle system. It follows that for $\vec{P}_{tot}$ before a collision and $\vec{P}_{tot}$ after the collision $\vec{P}_{tot}=\vec{P}'_{tot}$ are equal. \\
+
+    Now lets considere two particels with a pair of phase space coordinates $(\vec{r}_1, \vec{p}_1)$ and $(\vec{r}_2, \vec{p}_2)$ resulting in a momentum $\vec{P}_{tot}=\vec{p}_1+\vec{p}_2$ of the closed system. Then due to the conservation of momentum 
+    \begin{align*}
+        \vec{P}_{tot}&=\vec{P}'_{tot} \\
+        \Leftrightarrow \vec{p}_1+\vec{p}_2&= \vec{p}_1'+\vec{p}_2' \\
+        \Leftrightarrow \vec{p}_1 - \vec{p}_1' &= - (\vec{p}_2 - \vec{p}_2') \\
+        \Leftrightarrow \Delta \vec{p}_1 &= -\Delta\vec{p}_2
+    \end{align*}
+    The problem is solved when the momenta $\vec{p}'_1$ and $\vec{p}_2'$ after the collsision have been found.\\ % Primes are ugly af
+
+    A possibility to find the momenta after the collision can be by changing into the relative coordinates $\vec{r}_{rel}=\vec{r}_2-\vec{r}_1$ of the system. 
+    The resulting relative momentum can be derived while considering $\frac{\partial \vec{r}}{\partial t}=\frac{\vec{p}}{m}$ 
+    \begin{align*}
+        \frac{\partial \vec{r}_{rel}}{\partial t}&= \frac{\partial \vec{r}_2}{\partial t}-\frac{\partial \vec{r}_1}{\partial t} \\
+        &=\frac{\vec{p}_2}{m_2}-\frac{\vec{p}_1}{m_1} 
+    \end{align*}
+    Here we can use $\vec{P}_{tot}-\vec{p}_1=\vec{p}_2$:
+    \begin{align*}
+        \frac{\partial \vec{r}_{rel}}{\partial t} &= \frac{\vec{P}_{tot}-\vec{p}_1}{m_2} - \frac{\vec{p}_1}{m_1} \\
+        &= \frac{\vec{P}_{tot}}{m_2} - \left(\frac{\vec{p}_1}{m_2}+\frac{\vec{p}_1}{m_1}\right) \\
+        &= \frac{\vec{P}_{tot}}{m_2} - \underset{=\mu^{-1}}{\underbrace{\left(\frac{m_1+m_2}{m_2m_1}\right)}}  \vec{p}_1 \\
+        \Leftrightarrow \mu \frac{\partial \vec{r}_{rel}}{\partial t}= \vec{p}_{rel} &= \frac{\mu}{m_2} \vec{P}_{tot} - \vec{p}_1
+    \end{align*} 
+    Now, we want to considere the change in momenta (in respect to time) taking advantage of $\frac{\partial \vec{P}_{tot}}{\partial t}=0$. We obtain
+    \begin{align*}
+        \frac{\partial \vec{p}_{rel}}{\partial t} =-\frac{\partial \vec{p}_1}{\partial t} \\
+        \Leftrightarrow \Delta \vec{p}_{rel} =-\Delta \vec{p}_1 \\
+        \Rightarrow \Delta \vec{p}_2 = \Delta\vec{p}_{rel}.
+    \end{align*}
+    The advantage of relative koordinates is the translation into the koordinates of one of the solid spheres i.e. of $\vec{r}_2$ and describing the kollision of a moving sphere and a resting sphere. \\
+
+    It remains an open problem to describe the change in momenta in the elastic collision of a resting hard sphere and a sphere moving. Here it is convinient to make use of the simplification, that the hard spheres have the same mass $m_i=m_j$ for all $i$ and $j$, or in a two body collision $m_1=m_2$. \\
+
+    For a two body collision, for which the mass of the bodies are the same\dots
+
+    Well, I didn't manage to get to the collsion part, though the idea is, that only the velocity component along the collision axis gets completly transfered (because $m_1=m_2$). So one determines the projection of the velocity along that axis and mulitplies it to the unit vector of the same axis. Subtracts this form the moving particle and adds it to the resting particle.
+
+\section{Implementation}
+
+The collisions get \dots
+See for implementation in the .ipynb.
+
+\section{Simulation and Analysis}
+The figures shown were generated with $n=500$ particles and $T=2000$ timesteps.
+Here are some distributions. First the distributions of $|v|=0.5$nm per timestep along the $x$- and $y$-axis independently and below for $|v|=1.0$nm per timestep. Following with the distributions the absolute velocities $|v|$  
+
+
+\subsection{Velocities $x$ and $y$ components}
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=10cm]{histograms-vx0.5big1.png}
+    \caption{Here are two figures capturing the velocity distribution along the x-axis. On the left we have the velocity distribution of the first 10\% of the timesteps and on the right, we have the last 10\% of the timesteps}
+    \label{figvx1}
+\end{figure}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=10cm]{histograms-vy0.5big1.png}
+    \caption{Here we also capture the velocity distribution in the first 10\% of the timesteps (on the left) and the last 10\% of the timesteps.}
+    \label{figvy1}
+\end{figure}
+
+In the two figures \ref{figvx1} and \ref{figvy1}, one can see how the initial distribution, which is evenly distributed between $-0.5\leq v_i \leq 0.5$ for $i\in {x,y}$, turns into a normal distribution around its mean $v_i=0$ after some initialisation time. The question that arises is why the initial distribution is not already a normal distribution, if the initial anlges are evenly distributed? 
+
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=10cm]{histograms-vx1.0big1.png}
+    \caption{These figures shows the velocity component along the x-axis at the beginning and the end of the simulation for velocities initialised with $|v|=1.0$nm per timestep.}
+    \label{figvx2}
+\end{figure}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=10cm]{histograms-vy1.0big1.png}
+    \caption{These figures shows the velocity component along the y-axis at the beginning and the end of the simulation for velocities initialised with $|v|=1.0$nm per timestep.}
+    \label{figvy2}
+\end{figure}
+
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=10cm]{maxwell_boltzmann-v_abs0.5big1.png}
+    \caption{This figures show the velocity norm ($|v|$) distribution. The distribution on the left is for the first 10\% of the timesteps and on the right for the last 10\% of the timesteps.}
+    \label{vabs05}
+\end{figure}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=10cm]{maxwell_boltzmannTheory0.5.png}
+    \caption{This figure displays the Maxwell Boltzmann distribution for $k_B=1$ and a temperature determined by $T=\frac{m v_0^2}{2k_B}$, which follows from setting $<E_{kin}> =\frac{d}{2}k_BT$, for a space dimension $d=2$. Here $|v_0|=0.5$nm per timestep.}
+    \label{mwbolts05}
+\end{figure}
+
+Comparing the distributions of the normed velocity $|v|=\sqrt{v_x^2+v_y^2}$ at the beginning of the simulation (on the left) with the distribution at the end of the simulation (on right), one can see a clear peak for at $|v|=0.5$, as the velocities were initiated as such. A slight diffusion of the clear peak can already be observed by the smearing out. The distribution at the end of the simulation has resemblance to the shape provided by the Maxwell-Boltzmann distribution (see in \ref{mwbolts05}). A slight difference to the referrence distribution provided by the theory is that the distribution measured has a maximum in between $|v|=0.25$ and $|v|=0.5$nm per timestep in comparison to the maximum clearly at $|v|=0.5$ nm per timestep.
+
+
+
+\begin{figure}[h]
+    \includegraphics[width=10cm]{maxwell_boltzmann-v_abs1.0big1.png}
+    \caption{This figures show the velocity norm ($|v|$) distribution for an intial velocity $|v|=0.5$nm per timestep. The distribution on the left is for the first 10\% of the timesteps and on the right for the last 10\% of the timesteps.}
+    \label{vabs10}
+\end{figure}
+
+\begin{figure}[h]
+    \includegraphics[width=10cm]{maxwell_boltzmannTheory1.0.png}
+    \caption{This figure displays the Maxwell Boltzmann distribution for  $k_B=1$ and a temperature determined by $T=\frac{m v_0^2}{2k_B}$, which follows from setting $<E_{kin}> =\frac{d}{2}k_BT$, for a space dimension $d=2$. here $v_0^2=|v_0|^2$ and $|v_0|=1.0$nm per timestep}
+    \label{mwbolts10}
+\end{figure}
+
+Simular to the discussion above a cleare difference in the velocity distributio can be observed between the initial velocity and the equillibriated velocity distribution. Yet again, the theory provides a maximum at $|v|=1.0$nm per timestep and the measurement has a maximum slightly to the left of $|v|=1$nm per timestep.
+
+\end{document}
