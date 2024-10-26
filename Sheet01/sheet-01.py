@@ -191,7 +191,5 @@ def animation_plot(p_radius:float|int,box:tuple[float|int]):
     ax.set_ylabel("Y [nm]")
     return scat, fig, ax
 
-
-
 if __name__ == "__main__":
-    print(run())
+    run()
