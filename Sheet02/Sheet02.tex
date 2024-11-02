@@ -1,0 +1,468 @@
+\documentclass{article}
+
+\usepackage[english]{babel}
+
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amsfonts}
+\usepackage{tikz}
+\usepackage[plain]{algorithm}
+\usepackage{algpseudocode}
+
+\usepackage[plain]{algorithm}
+% For code snippets
+\usepackage{listings}
+\usepackage{color}
+
+% Define colors for code
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegray},
+    keywordstyle=\color{blue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=4
+}
+
+\lstset{style=mystyle}
+
+\title{
+    \vspace{2in}
+    \textmd{\textbf{Homework: Velocity Verlet \& Lennard-Jones potential}}\\
+    \normalsize\vspace{0.1in}\small{Due on Friday 1.11 at 10:15am}\\
+    \vspace{0.1in}
+    \vspace{3in}
+}
+
+\author{Dominic Nieder, Awais Ahmed}
+\date{\today}
+
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+
+This document explains the implementation of particle simulation that interact with a Lennard-Jones potential. First the code will be shortly elaborated upon and explained. Then the simulation results shall be discussed by taking a look at the time evolution of the total potential-, kinetic Energy as well as the temperature.
+
+
+
+\section{Code and its Implementation}
+
+\subsection{Particles and their Interaction} \label{ParticlesAndInteractions}
+
+The particles will all be captured by the class \texttt{Particle}. This class contains all particle positions, velocities and accelerations of seperate $x$- and $y$-coordinates. The class also contains the particles mass as well as the number of particles. In order to handle the Velocity Verlet integration sceam, another set of fields reserved for the accelerations "$2$".
+
+\begin{lstlisting}[language=Python, caption=Particle class]
+class Particle:
+    def __init__(
+        self,
+        n: int,
+        m: float | int,
+        x: NDArray[np.float64],
+        y: NDArray[np.float64],
+        vx: NDArray[np.float64],
+        vy: NDArray[np.float64],
+    ):
+        self.n: int = n
+        self.m: float = float(m)
+        self.x: NDArray[np.float64] = np.array(x, dtype=np.float64)
+        self.y: NDArray[np.float64] = np.array(y, dtype=np.float64)
+        self.vx: NDArray[np.float64] = np.array(vx, dtype=np.float64)
+        self.vy: NDArray[np.float64] = np.array(vy, dtype=np.float64)
+        self.ax1: NDArray[np.float64] = np.zeros(n, dtype=np.float64)
+        self.ay1: NDArray[np.float64] = np.zeros(n, dtype=np.float64)
+        self.ax2: NDArray[np.float64] = np.zeros(n, dtype=np.float64)
+        self.ay2: NDArray[np.float64] = np.zeros(n, dtype=np.float64)
+\end{lstlisting}
+\pagebreak
+The interaction between the point-like particles is governed by the Lennard-Jones interaction potential. Two coefficients $C_{12}$ and $C_6$ were used. Their units are given in J/mol. The potential \texttt{lj_potential} is a function only of the distance \textit{d12} between two particles, whereas the \texttt{lj_force} is a function of two particle's relative position \textit{r12} as well as their distance \textit{d12}.
+
+\begin{lstlisting}[language=Python, caption={Interaction potential and force}]
+def lJ_potential(
+        d12: float|NDArray[np.float64]
+) -> float|NDArray[np.float64]:
+    """
+    Lennard Jones Potential
+    """
+    c_12 = 9.847044*10**(-3)  
+    c_6 = 6.2647225           
+    return c_12/d12**12-c_6/d12**6
+
+def lj_force(
+        d12: float|int,
+        r12: NDArray[np.float64]
+) -> NDArray[np.float64]:
+    """
+    Force by Lennard-Jones interaction potential.
+    """
+    c_12 = 9.847044*10**(-3)  
+    c_6 = 6.2647225           
+    return (12*c_12/d12**13-6*c_6/d12**7) * r12/d12
+\end{lstlisting}
+
+\subsection{Initialization of Particles on a Grid}%\label{GridInit}
+This function gets called once to initiate all particles evenly distributed on a grid and with velocities in random directions. To instantiate the grid the numpy functions \texttt{meshgrid} and \texttt{flatten} are used. 
+\begin{lstlisting}[language=Python, caption=Particle Initialization on a Grid]
+def initialize_particles_on_grid(
+    n_particles: int, 
+    box: tuple[float|int, float|int], 
+    mass: float, 
+    velocity: float,
+    add_jitter: bool
+) -> Particle:
+    """
+    Particles a regular grid within a given spacing.\n
+    Random velocity directions. \n
+    Returns: Particle with initialized positions and velocities. 
+    """
+    x_return = np.zeros(n_particles)
+    y_return = np.zeros(n_particles)
+    grid_sections = int(np.ceil(np.sqrt(n_particles))) 
+    x_spacing = box[0]/grid_sections 
+    y_spacing = box[1]/grid_sections
+    x_positions, y_positions = np.meshgrid(
+        np.arange(grid_sections) * x_spacing, 
+        np.arange(grid_sections) * y_spacing
+    )
+    if add_jitter:
+        x_positions += (np.random.rand(len(x_positions))-0.5)
+        y_positions += (np.random.rand(len(y_positions))-0.5)
+    x_return = x_positions.flatten()[:n_particles]
+    y_return = y_positions.flatten()[:n_particles]
+    vx = velocity * (np.random.rand(n_particles) - 0.5) * 2
+    vy = velocity * (np.random.rand(n_particles) - 0.5) * 2
+    return Particle(
+        n=n_particles,
+        m=mass,
+        x=x_return,
+        y=y_return,
+        vx=vx,
+        vy=vy
+    )
+\end{lstlisting}
+
+\subsection{Simulation \& Integration}\label{SimulationAndIntegration}
+
+The \texttt{simulate} function takes a \texttt{Particle}, a \textit{time} for the amout of time integrations, \textit{dt} describing the timestep size, a \textit{box} with periodic boundry conditions and a \textit{data} array to save the particle states. The function contains iterations through time and calls the function \texttt{iterate} in which the positions get iterated to the next position $x(t)\rightarrow x(t+\Delta t)$, then saves the data on the phase space resulting from the iteration. Initialy the first acceleration needs to be determined before the time-integration loop starts, this can be understood with the \texttt{iterate} function below and is an artefact of how the Velocity Verlet is implemented.
+
+\begin{lstlisting}[language=Python, caption=Simulation]
+def simulate(
+        particles: Particle, 
+        time: int,
+        dt: float|int, 
+        box: tuple[float|int,float|int],
+        data: NDArray[np.float64]
+) -> NDArray[np.float64]:
+    """
+    Runs a simulation of n-particles in a box and saves phase-space coordinates to data.\n
+    Returns data.
+    """
+    update_accelerations(particles,box)
+    for t in range(time):  
+        iterate(dt,particles,box)
+        data[t,0,:]=particles.x
+        data[t,1,:]=particles.y
+        data[t,2,:]=particles.vx
+        data[t,3,:]=particles.vy
+    return data
+\end{lstlisting}
+
+\subsubsection{Velocity Verlet}
+The function \texttt{iterate} is an implementation of the Velocity Verlet algorithm. It takes \textit{dt}, \texttt{Particle} and the \textit{box} size as arguments and returns \texttt{None}. Instead the \texttt{Particle} fields get updated within (e.g. with \textit{particles.ax1 \dots}). The Velocity Verlet algorithm has four steps:
+\begin{enumerate}
+    \item Calculate forces/accelerations $f(x(t))$ 
+    \item Update positions $x(t) \rightarrow x(t+dt)$ 
+    \item Calculate forces/accelerations $f(x(t+dt))$ 
+    \item Update velocities $v(t) \rightarrow v(t+dt)$ with $f(x(t))$ and $f(x(t+dt))$
+\end{enumerate} 
+Where the first step is accounted for by copying the acceleration $f(x(t_1+dt)) \overset{t+dt \longrightarrow t}{\rightarrow}f(x(t_2))$. This why \texttt{update_acceleration} gets called in the \texttt{simulate} function before iterating over time. This why \texttt{update_acceleration} gets called in the \texttt{simulate} function before iterating over time.
+\pagebreak
+\begin{lstlisting}[language=Python, caption=Iterates the positions by Velocity Verlet]
+def iterate(
+        dt: float|int,
+        particles: Particle,
+        box: tuple[float|int,float|int]
+) -> None:
+    """
+    Updates positions and velocities. 
+    Accelerations for 1. iteration need to be obtained prior. 
+    """
+    particles.ax1=particles.ax2
+    particles.ay1=particles.ay2
+    integrate_position(particles,dt,box)
+    update_accelerations(particles,box)
+    integrate_velocity(particles,dt)
+    pass
+\end{lstlisting}
+\pagebreak
+We shall start by considering the function necessary for the first and third step: \texttt{update_acceleration} - consevably the most interesting one. This function takes \texttt{Particle} and \textit{box} and updates the acceleration fields \textit{ax2} and \textit{ay2} of the \texttt{Particle}. 
+\subsubsection{Update Acceleration}
+To update the acceleration fields all the forces between all particles need to be fetched, leading to a large array of forces per particle over which then need to be summed to a single force vector. Naturally there needs to be an iteration over all particles. In each iteration the distance to all other particles except for $i=j$. Furthermore, to save calculation costs we can make use of Newtons law $f(i\to j)=f(j\to i)$. Due to the symmetry of this problem the distances $d(i \to j)$ for all particles $j>i$ need to be determined to calculate all forces. This is achieved with \textit{x_rel} and \textit{y_rel}  each calling the function \texttt{rel_coordinate} (together resulting in a coordinate relative to particle $i$). This function shall be discussed here after, but most importantly this function includes a nearest neigbouhr search, to find the particle that is closest within the periodic boundry conditions. \\
+
+Then with all particle positions relative to particle $i$ we iterate over all other particles $j\geq i+1$ and determine the force acting between them by calling \texttt{lj_force} a function of the relative coordinates and their distance. With the prefactor $\pm1$ in mind the acceleration is added to the two particles $i$ and $j$ respectivly. For this reason the function \texttt{reset_acceleration} is being called at the very beginning, sets the accelerations to zero, simply so that the forces can be added up repeatedly. The confusing terms for the index considers the fact that the arrays of \textit{x}, \textit{y_rel} are of the size $n-i$ therefore the inidcies need to be shifted just as given in the code. Next we shall considere the function \texttt{rel_coordiante}.
+\pagebreak
+\begin{lstlisting}[language=Python, caption=updating accelerations]
+def update_accelerations(
+        particles: Particle,
+        box: tuple[float|int,float|int],    
+) -> None:
+    """
+    Updates particle.ax2 and particle.ay2 from the particle class.\n
+    Issues: creating force variable and relative positions x and y on the fly.
+    """
+    reset_acceleration(particles)
+    for i in range(particles.n):
+        x_rel=rel_coordiante(particles.x[i], particles.x[i+1:particles.n],box[0]) 
+        y_rel=rel_coordiante(particles.y[i], particles.y[i+1:particles.n],box[1])
+        for j in range(i+1,particles.n):
+            acceleration = 1/particles.m * lj_force(
+                distance(x_rel[j-(i+1)],y_rel[j-(i+1)]),
+                np.array([x_rel[j-(i+1)],y_rel[j-(i+1)]])
+                )
+            particles.ax2[i] += acceleration[0]  
+            particles.ay2[i] += acceleration[1]
+            particles.ax2[j] -= acceleration[0] 
+            particles.ay2[j] -= acceleration[1]
+    pass
+\end{lstlisting}
+\pagebreak
+\subsubsection{Nearest neighbour search and distances}
+The \texttt{rel_coordinate} takes on a float argument \textit{r1} of to which the neighbours should be found to and \textit{r2} list of x or y positions of the other particles. The relative positions $r_1\to r_2$ are sought after and are found by determining the \texttt{system_shift} $S\to S'$. In $S'$ $r_1$ is in the center of its box. Then the positions $r_2$ inside the box $S'$ around $r_2$ are determined. First we need to apply the same shift to $r_2$ and then put onto the Ring of $S'$ by the modulo operation. As such we will allways find those positions and directions which are the nearest on the Ring.
+
+\begin{lstlisting}[language=Python, caption= Nearest neighbour search in relative coordinates]
+def rel_coordiante(
+        r1: float,
+        r2: NDArray[np.float64],
+        box: float|int
+) -> NDArray[np.float64]:  
+    """ 
+    Returns list(aroows):(r1->list(r2))(x|y), for vectorcomponent x or y.
+    """
+    return (r2-system_shift(r1,box))modulo box - box/2
+
+def system_shift(
+        x: float,
+        box: float
+) -> NDArray[np.float64]:
+    """
+    Calculating shift of one coordinate
+    """
+    return x-box/2   
+\end{lstlisting}
+
+\subsubsection{On with Velocity Verlet}
+The next step in the Velocity Verlet algorithm after the force and acceleration have been determined, the position iteration can take place. The \texttt{integrate_position} function takes \texttt{Particle}, \textit{dt} and \textit{box} as an input and again ouputs \texttt{None}, as the fields of \texttt{Particle} are updated directly. The change in position is determined by $\Delta x(t)=v(t)\Delta t+\frac{a(t)\Delta t^2}{2}$. Then to keep all particles stay inside the periodic boundry conditions, the modulo of the particle position set to be the updated positions. 
+
+\begin{lstlisting}[language=Python, caption=integrate position]
+def integrate_position(
+        particles: Particle,
+        dt: float|int,
+        box: tuple[float|int, float|int]
+) -> None:
+    """
+    Velocity Verlet: Updates positions of particles.
+    """
+    dx = particles.vx*dt+particles.ax1*dt*dt/2
+    dy = particles.vy*dt+particles.ay1*dt*dt/2
+    particles.x+=dx 
+    particles.y+=dy
+    particles.x = particles.x modulo box[0]
+    particles.y = particles.y modulo box[1]
+    pass
+\end{lstlisting}
+
+%Then there is only the velocity integration left: \texttt{integrate_velocity} determines $v(t) \to v(t+\Delta t)$ with the accelerations $a(t)$ and $a(t+\Delta t)$.
+\begin{lstlisting}
+def integrate_velocity(
+    particles: Particle,
+    dt: float|int
+) -> None:
+    """
+    Velocity Verlet: velocity integration.\n
+    Updates velocities of particles.
+    """
+    particles.vx+=1/2 * (particles.ax1+particles.ax2)*dt
+    particles.vy+=1/2 * (particles.ay1+particles.ay2)*dt
+    pass
+\end{lstlisting}
+
+
+\section{Simulation}
+
+%The simulation is then implemented by instantiating all the variables and them calling the \texttt{simulate} concatenated with the \texttt{initialize_particles_on_grid} function. We had to take care of all the different units that were flying around. As an example we had the \textit{mass}$=16$g/mol and did not take into consideration that all the other units were given in J or even kJ. So that the system instaniously crashed. After fixing the units we played around with the box size and the initial velocity \dots 
+
+\begin{lstlisting}[language=Python, caption=Simulation run.]
+n_particles: int = 64  
+paritcle_mass: float = 18*10**(-3)  
+velocity: float = 150 
+time_steps: int = 20000
+dt: float = 0.0002  
+box: tuple[int, int] = (10,10)  
+data: NDArray[np.float64] = np.zeros((time_steps,len(box)**2,n_particles)) 
+save_mp4: bool = True
+data = simulate(
+    initialize_particles_on_grid(
+    n_particles=n_particles,
+    box=box,
+    mass=paritcle_mass,  
+    velocity=velocity,
+    add_jitter=True  
+    ),
+    time=time_steps, 
+    dt=dt,  
+    box=box,
+    data=data  
+)
+
+mp4 = creat_animation(save_mp4, "sheet02-animation_init-acc-jitter",box, data[:,0,:],data[:,1,:])  
+HTML(mp4.to_html5_video())   
+\end{lstlisting} 
+One of the reasons why the system crashed was due to an error  "devide by zero", which was countered with a lack of elegance by an if condition in the \texttt{distance} function returning a very large distance instead:
+
+\begin{lstlisting}[language=Python, caption=Countering "devide by zero" errors.]
+def distance(
+        x: float,
+        y: float
+) -> float:
+    """
+    Takes relative ccordinates. \n
+    Returns distance between two particles. \n\n
+    I somehow have to deal with the possibility of dividing by Zero. My idea is to set distance very large, so that the collision get "ignored".
+    """
+    d=np.sqrt(x*x+y*y)
+    if d!=0:
+        return d 
+    else:
+        return 100000000
+\end{lstlisting}
+This worked suprisingly well. Though not well enough when the \textit{box} was smaller or the timesteps \textit{dt} bigger. Unfortunatly I did not record the data before and after.\\
+Another try to improove the stability was by adding statistical noise that we shall refere too as "jitter". I thought, that the initial positions could get a small random number added to itselfe - this effect was rather small as well \ref{initjitter_scatter}. Then the idea was extended to adding a jitter to the acceleration, instead of setting the acceleration to zero.
+
+\begin{figure}
+    \includegraphics{initialisation.png}
+    \caption{This is a scatter plot of how a jitter influences the initialisation.}\label{initjitter_scatter}
+\end{figure}
+
+
+\subsection{Results}
+The energies of the particles are calculated and plotted as kinetic and potential energies over time. This visualization allows for observing the system’s energy changes throughout the simulation. Then there is also the temperature allowing for simular observations.
+
+When simulating a short time period, we can measure the kinetic and potential enery as in \ref{kinandpot}.
+
+\begin{figure}[h]
+    \includegraphics{sheet02-AnalysisEnergies_and_temp1.png}
+    \caption{This figure displays the kinet and potential energy in one figure on the left and the Temperature plot on the right (the units do not seem to fit here). }\label{kinandpot}
+\end{figure}
+
+When simulating for a longer period the simulation crashes as the energies show in figure \ref{simcrash}.
+
+\begin{figure}[h]
+    \includegraphics{sheet02-AnalysisEnergies_and_temp2.png} 
+    \caption{This figure shows the potential and kinetik energy thoughout time in the left figure and the Temperture as a function of time on the right.}\label{simcrash}
+\end{figure}
+
+This might happen, because the timestep is too large so that the force and velocity and trajectory get calculated wrongly and that slowly but surely a particle gets closer to one another and the exponential increasing potential than rejects the particle with super large velocities. The kinetik energy then quickly spreads to the other particles. Resulting in a extremly fast increase in kinetik energy.\\
+
+When the acceleration gets set to some random number, then system still crashes. This is probably due to a wrong application of such a randomized force, which would need to fullfill the fokker planck equation to be able to lead to a stable solution. Here is the Energy and Temperature graph with some "jitter" (\ref{energy-with-jitter}).
+
+\begin{figure}
+    \includegraphics{sheet02-AnalysisEnergies_and_temp_init-acc-jitter1.png}
+    \caption{This figure shows how the energies behave if one just adds some random number to the acceleration, in order to try to stabilize the system.}\label{energy-with-jitter}
+\end{figure}
+
+Here you can see how the jitter was added to the acceleration term and with which prefactors, as I remembered that it should be something proportional with $\sqrt{\Delta t}$.
+\begin{lstlisting}[language=Python, caption=Energy Plotting]
+def jitter_acceleration(
+        particles: Particle
+) -> None:
+    """
+    Sets particles.ax2 and particles.ay2 to a small random number 
+    """
+    particles.ax2=np.random.rand(particles.n)*np.sqrt(0.0002)
+    particles.ay2=np.random.rand(particles.n)*np.sqrt(0.0002)
+    pass
+
+def update_accelerations(
+        particles: Particle,
+        box: tuple[float|int,float|int],    
+) -> None:
+    """
+    Updates particle.ax2 and particle.ay2 from the particle class.\n
+    Issues: creating force variable and relative positions x and y on the fly.
+    """
+    jitter_acceleration(particles)
+    for i in range(particles.n):
+        x_rel=rel_coordiante(particles.x[i], particles.x[i+1:particles.n],box[0]) 
+        y_rel=rel_coordiante(particles.y[i], particles.y[i+1:particles.n],box[1])
+        for j in range(i+1,particles.n):
+            acceleration = 1/particles.m * lj_force(
+                distance(x_rel[j-(i+1)],y_rel[j-(i+1)]),
+                np.array([x_rel[j-(i+1)],y_rel[j-(i+1)]])
+                ) 
+            particles.ax2[i] += acceleration[0]  
+            particles.ay2[i] += acceleration[1]
+            particles.ax2[j] -= acceleration[0] 
+            particles.ay2[j] -= acceleration[1]
+    pass
+\end{lstlisting}
+
+Here is the calculation of the kinetic and potentil energies adn temperature.
+\begin{lstlisting}[language=Python, caption={This is how the energies were analyzed and calculated}]
+def kinetic_Energy(
+        velocity_x_data: NDArray[np.float64],
+        velocity_y_data: NDArray[np.float64],
+        mass: float | NDArray[np.float64]
+) -> NDArray[np.float64]:  
+    """
+    Takes velocity Data. \n
+    Returns kinetic Energy as a function of time.
+    """
+    ekin = mass/2*np.sum((np.square(velocity_x_data)+np.square(velocity_y_data)),1)
+    return ekin
+
+def potential_Energy(
+    position_x_data: NDArray[np.float64],
+    position_y_data: NDArray[np.float64],
+    box: tuple[float|int,float|int]
+) -> NDArray[np.float64]:
+    """
+    Takes posiiton arguments x(t), y(t) and a box as input. \n
+    Returns Total potential Energy as a function of time.
+    """
+    e=np.zeros(len(position_x_data[:,0]))
+    for T in range(len(position_x_data[:,0])):
+        for i in range(len(position_x_data[0,:])):
+            dx=rel_coordiante(position_x_data[T,i],position_x_data[T,i+1:len(position_x_data[1])],box[0])
+            dy=rel_coordiante(position_y_data[T,i],position_y_data[T,i+1:len(position_y_data[1])],box[1])
+            d = map(distance,dx,dy)
+            e[T]+= np.sum(np.array(list(map(lJ_potentil,d))))
+    return e
+
+def temperature_curve(  
+        dof: int,  
+        e_kin: NDArray[np.float64],
+        n_particles: int,
+) -> NDArray[np.float64]:
+    k = 1.380649*10**(-23)  
+    return 2*(e_kin/n_particles)/dof/k
+\end{lstlisting}
+
+
+
+\end{document}
