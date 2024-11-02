@@ -90,8 +90,8 @@ class Particle:
         self.ax2: NDArray[np.float64] = np.zeros(n, dtype=np.float64)
         self.ay2: NDArray[np.float64] = np.zeros(n, dtype=np.float64)
 \end{lstlisting}
-\pagebreak
-The interaction between the point-like particles is governed by the Lennard-Jones interaction potential. Two coefficients $C_{12}$ and $C_6$ were used. Their units are given in J/mol. The potential \texttt{lj_potential} is a function only of the distance \textit{d12} between two particles, whereas the \texttt{lj_force} is a function of two particle's relative position \textit{r12} as well as their distance \textit{d12}.
+
+The interaction between the point-like particles is governed by the Lennard-Jones interaction potential. Two coefficients $C_{12}$ and $C_6$ were used. Their units are given in J/mol. The potential \texttt{lj\_potential} is a function only of the distance \textit{d12} between two particles, whereas the \texttt{lj\_force} is a function of two particle's relative position \textit{r12} as well as their distance \textit{d12}.
 
 \begin{lstlisting}[language=Python, caption={Interaction potential and force}]
 def lJ_potential(
@@ -116,7 +116,7 @@ def lj_force(
     return (12*c_12/d12**13-6*c_6/d12**7) * r12/d12
 \end{lstlisting}
 
-\subsection{Initialization of Particles on a Grid}%\label{GridInit}
+\subsection{Initialization of Particles on a Grid}\label{GridInit}
 This function gets called once to initiate all particles evenly distributed on a grid and with velocities in random directions. To instantiate the grid the numpy functions \texttt{meshgrid} and \texttt{flatten} are used. 
 \begin{lstlisting}[language=Python, caption=Particle Initialization on a Grid]
 def initialize_particles_on_grid(
@@ -191,7 +191,7 @@ The function \texttt{iterate} is an implementation of the Velocity Verlet algori
     \item Calculate forces/accelerations $f(x(t+dt))$ 
     \item Update velocities $v(t) \rightarrow v(t+dt)$ with $f(x(t))$ and $f(x(t+dt))$
 \end{enumerate} 
-Where the first step is accounted for by copying the acceleration $f(x(t_1+dt)) \overset{t+dt \longrightarrow t}{\rightarrow}f(x(t_2))$. This why \texttt{update_acceleration} gets called in the \texttt{simulate} function before iterating over time. This why \texttt{update_acceleration} gets called in the \texttt{simulate} function before iterating over time.
+Where the first step is accounted for by copying the acceleration $$f(x(t_1+dt)) \overset{t+dt \longrightarrow t}{\rightarrow}f(x(t_2))$$. This why \texttt{update\_acceleration} gets called in the \texttt{simulate} function before iterating over time. This why \texttt{update\_acceleration} gets called in the \texttt{simulate} function before iterating over time.
 \pagebreak
 \begin{lstlisting}[language=Python, caption=Iterates the positions by Velocity Verlet]
 def iterate(
@@ -211,12 +211,19 @@ def iterate(
     pass
 \end{lstlisting}
 \pagebreak
-We shall start by considering the function necessary for the first and third step: \texttt{update_acceleration} - consevably the most interesting one. This function takes \texttt{Particle} and \textit{box} and updates the acceleration fields \textit{ax2} and \textit{ay2} of the \texttt{Particle}. 
-\subsubsection{Update Acceleration}
-To update the acceleration fields all the forces between all particles need to be fetched, leading to a large array of forces per particle over which then need to be summed to a single force vector. Naturally there needs to be an iteration over all particles. In each iteration the distance to all other particles except for $i=j$. Furthermore, to save calculation costs we can make use of Newtons law $f(i\to j)=f(j\to i)$. Due to the symmetry of this problem the distances $d(i \to j)$ for all particles $j>i$ need to be determined to calculate all forces. This is achieved with \textit{x_rel} and \textit{y_rel}  each calling the function \texttt{rel_coordinate} (together resulting in a coordinate relative to particle $i$). This function shall be discussed here after, but most importantly this function includes a nearest neigbouhr search, to find the particle that is closest within the periodic boundry conditions. \\
+We shall start by considering the function necessary for the first and third step: \texttt{update\_acceleration} - consevably the most interesting one. This function takes \texttt{Particle} and \textit{box} and updates the acceleration fields \textit{ax2} and \textit{ay2} of the \texttt{Particle}. 
 
-Then with all particle positions relative to particle $i$ we iterate over all other particles $j\geq i+1$ and determine the force acting between them by calling \texttt{lj_force} a function of the relative coordinates and their distance. With the prefactor $\pm1$ in mind the acceleration is added to the two particles $i$ and $j$ respectivly. For this reason the function \texttt{reset_acceleration} is being called at the very beginning, sets the accelerations to zero, simply so that the forces can be added up repeatedly. The confusing terms for the index considers the fact that the arrays of \textit{x}, \textit{y_rel} are of the size $n-i$ therefore the inidcies need to be shifted just as given in the code. Next we shall considere the function \texttt{rel_coordiante}.
-\pagebreak
+\subsubsection{Update Acceleration}
+
+To update the acceleration fields all the forces between all particles need to be fetched, 
+leading to a large array of forces per particle over which then need to be summed to a single force vector. 
+Naturally there needs to be an iteration over all particles. 
+In each iteration the distance to all other particles except for $i=j$. 
+Furthermore, to save calculation costs we can make use of Newtons law $f(i\to j)=f(j\to i)$. Due to the symmetry of this problem the distances $d(i \to j)$ for all particles $j>i$ need to be determined to calculate all forces. 
+This is achieved with \textit{x\_rel} and \textit{y\_rel}  each calling the function \texttt{rel\_coordinate} (together resulting in a coordinate relative to particle $i$). 
+This function shall be discussed here after, but most importantly this function includes a nearest neigbouhr search, to find the particle that is closest within the periodic boundry conditions. \\
+
+Then with all particle positions relative to particle $i$ we iterate over all other particles $j\geq i+1$ and determine the force acting between them by calling \texttt{lj\_force} a function of the relative coordinates and their distance. With the prefactor $\pm1$ in mind the acceleration is added to the two particles $i$ and $j$ respectivly. For this reason the function \texttt{reset\_acceleration} is being called at the very beginning, sets the accelerations to zero, simply so that the forces can be added up repeatedly. The confusing terms for the index considers the fact that the arrays of \textit{x\_rel}, \textit{y\_rel} are of the size $n-i$ therefore the inidcies need to be shifted just as given in the code. Next we shall considere the function \texttt{rel\_coordiante}.
 \begin{lstlisting}[language=Python, caption=updating accelerations]
 def update_accelerations(
         particles: Particle,
@@ -241,9 +248,9 @@ def update_accelerations(
             particles.ay2[j] -= acceleration[1]
     pass
 \end{lstlisting}
-\pagebreak
+
 \subsubsection{Nearest neighbour search and distances}
-The \texttt{rel_coordinate} takes on a float argument \textit{r1} of to which the neighbours should be found to and \textit{r2} list of x or y positions of the other particles. The relative positions $r_1\to r_2$ are sought after and are found by determining the \texttt{system_shift} $S\to S'$. In $S'$ $r_1$ is in the center of its box. Then the positions $r_2$ inside the box $S'$ around $r_2$ are determined. First we need to apply the same shift to $r_2$ and then put onto the Ring of $S'$ by the modulo operation. As such we will allways find those positions and directions which are the nearest on the Ring.
+The \texttt{rel\_coordinate} takes on a float argument \textit{r1} of to which the neighbours should be found to and \textit{r2} list of x or y positions of the other particles. The relative positions $r_1\to r_2$ are sought after and are found by determining the \texttt{system\_shift} $S\to S'$. In $S'$ $r_1$ is in the center of its box. Then the positions $r_2$ inside the box $S'$ around $r_2$ are determined. First we need to apply the same shift to $r_2$ and then put onto the Ring of $S'$ by the modulo operation. As such we will allways find those positions and directions which are the nearest on the Ring.
 
 \begin{lstlisting}[language=Python, caption= Nearest neighbour search in relative coordinates]
 def rel_coordiante(
@@ -267,7 +274,8 @@ def system_shift(
 \end{lstlisting}
 
 \subsubsection{On with Velocity Verlet}
-The next step in the Velocity Verlet algorithm after the force and acceleration have been determined, the position iteration can take place. The \texttt{integrate_position} function takes \texttt{Particle}, \textit{dt} and \textit{box} as an input and again ouputs \texttt{None}, as the fields of \texttt{Particle} are updated directly. The change in position is determined by $\Delta x(t)=v(t)\Delta t+\frac{a(t)\Delta t^2}{2}$. Then to keep all particles stay inside the periodic boundry conditions, the modulo of the particle position set to be the updated positions. 
+The next step in the Velocity Verlet algorithm after the force and acceleration have been determined, the position iteration can take place.
+The \texttt{integrate\_position} function takes \texttt{Particle}, \textit{dt} and \textit{box} as an input and again ouputs \texttt{None}, as the fields of \texttt{Particle} are updated directly. The change in position is determined by $\Delta x(t)=v(t)\Delta t+\frac{a(t)\Delta t^2}{2}$. Then to keep all particles stay inside the periodic boundry conditions, the modulo of the particle position set to be the updated positions. 
 
 \begin{lstlisting}[language=Python, caption=integrate position]
 def integrate_position(
@@ -287,7 +295,7 @@ def integrate_position(
     pass
 \end{lstlisting}
 
-%Then there is only the velocity integration left: \texttt{integrate_velocity} determines $v(t) \to v(t+\Delta t)$ with the accelerations $a(t)$ and $a(t+\Delta t)$.
+Then there is only the velocity integration left: \texttt{integrate\_velocity} determines $v(t) \to v(t+\Delta t)$ with the accelerations $a(t)$ and $a(t+\Delta t)$.
 \begin{lstlisting}
 def integrate_velocity(
     particles: Particle,
@@ -305,7 +313,7 @@ def integrate_velocity(
 
 \section{Simulation}
 
-%The simulation is then implemented by instantiating all the variables and them calling the \texttt{simulate} concatenated with the \texttt{initialize_particles_on_grid} function. We had to take care of all the different units that were flying around. As an example we had the \textit{mass}$=16$g/mol and did not take into consideration that all the other units were given in J or even kJ. So that the system instaniously crashed. After fixing the units we played around with the box size and the initial velocity \dots 
+The simulation is then implemented by instantiating all the variables and them calling the \texttt{simulate} concatenated with the \texttt{initialize\_particles\_on\_grid} function. We had to take care of all the different units that were flying around. As an example we had the \textit{mass}$=16$g/mol and did not take into consideration that all the other units were given in J or even kJ. So that the system instaniously crashed. After fixing the units we played around with the box size and the initial velocity \dots 
 
 \begin{lstlisting}[language=Python, caption=Simulation run.]
 n_particles: int = 64  
@@ -354,39 +362,42 @@ def distance(
 This worked suprisingly well. Though not well enough when the \textit{box} was smaller or the timesteps \textit{dt} bigger. Unfortunatly I did not record the data before and after.\\
 Another try to improove the stability was by adding statistical noise that we shall refere too as "jitter". I thought, that the initial positions could get a small random number added to itselfe - this effect was rather small as well \ref{initjitter_scatter}. Then the idea was extended to adding a jitter to the acceleration, instead of setting the acceleration to zero.
 
-\begin{figure}
-    \includegraphics{initialisation.png}
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.8\textwidth]{initialisation.png}
     \caption{This is a scatter plot of how a jitter influences the initialisation.}\label{initjitter_scatter}
 \end{figure}
 
-
+\newpage
 \subsection{Results}
 The energies of the particles are calculated and plotted as kinetic and potential energies over time. This visualization allows for observing the system’s energy changes throughout the simulation. Then there is also the temperature allowing for simular observations.
-
-When simulating a short time period, we can measure the kinetic and potential enery as in \ref{kinandpot}.
-
-\begin{figure}[h]
-    \includegraphics{sheet02-AnalysisEnergies_and_temp1.png}
-    \caption{This figure displays the kinet and potential energy in one figure on the left and the Temperature plot on the right (the units do not seem to fit here). }\label{kinandpot}
+When simulating a short time period, we can measure the kinetic and potential enery as in \ref{fig:kinandpot}.
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.8\textwidth]{sheet02-AnalysisEnergies_and_temp1.png}
+    \caption{This figure displays the kinet and potential energy in one figure on the left and the Temperature plot on the right (the units do not seem to fit here). }
+    \label{fig:kinandpot}
+\end{figure}
+When simulating for a longer period the simulation crashes as the energies show in figure \ref{fig:simcrash}.
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.8\textwidth]{sheet02-AnalysisEnergies_and_temp2.png} 
+    \caption{This figure shows the potential and kinetik energy thoughout time in the left figure and the Temperture as a function of time on the right.}
+    \label{fig:simcrash}
 \end{figure}
 
-When simulating for a longer period the simulation crashes as the energies show in figure \ref{simcrash}.
+This might happen, because the time step is too large so that the force and velocity and trajectory get calculated wrongly. That slowly but surely a particle gets closer to one another and the exponential increasing potential than rejects the particle with super large velocities. The kinetik energy then quickly spreads to the other particles. Resulting in a extremly fast increase in kinetik energy.\\
 
-\begin{figure}[h]
-    \includegraphics{sheet02-AnalysisEnergies_and_temp2.png} 
-    \caption{This figure shows the potential and kinetik energy thoughout time in the left figure and the Temperture as a function of time on the right.}\label{simcrash}
+When the acceleration gets set to some random number, then system still crashes. This is probably due to a wrong application of such a randomized force, which would need to fullfill the fokker planck equation to be able to lead to a stable solution. Here is the Energy and Temperature graph with some "jitter" (\ref{fig:energy-with-jitter}).
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.8\textwidth]{sheet02-AnalysisEnergies_and_temp_init-acc-jitter1.png}
+    \caption{This figure shows how the energies behave if one adds some random number to the acceleration term, in order to try to stabilize the system.}
+    \label{fig:energy-with-jitter}
 \end{figure}
-
-This might happen, because the timestep is too large so that the force and velocity and trajectory get calculated wrongly and that slowly but surely a particle gets closer to one another and the exponential increasing potential than rejects the particle with super large velocities. The kinetik energy then quickly spreads to the other particles. Resulting in a extremly fast increase in kinetik energy.\\
-
-When the acceleration gets set to some random number, then system still crashes. This is probably due to a wrong application of such a randomized force, which would need to fullfill the fokker planck equation to be able to lead to a stable solution. Here is the Energy and Temperature graph with some "jitter" (\ref{energy-with-jitter}).
-
-\begin{figure}
-    \includegraphics{sheet02-AnalysisEnergies_and_temp_init-acc-jitter1.png}
-    \caption{This figure shows how the energies behave if one just adds some random number to the acceleration, in order to try to stabilize the system.}\label{energy-with-jitter}
-\end{figure}
-
 Here you can see how the jitter was added to the acceleration term and with which prefactors, as I remembered that it should be something proportional with $\sqrt{\Delta t}$.
+\newpage
 \begin{lstlisting}[language=Python, caption=Energy Plotting]
 def jitter_acceleration(
         particles: Particle
