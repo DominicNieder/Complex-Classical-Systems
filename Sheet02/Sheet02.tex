@@ -192,7 +192,6 @@ The function \texttt{iterate} is an implementation of the Velocity Verlet algori
     \item Update velocities $v(t) \rightarrow v(t+dt)$ with $f(x(t))$ and $f(x(t+dt))$
 \end{enumerate} 
 Where the first step is accounted for by copying the acceleration $$f(x(t_1+dt)) \overset{t+dt \longrightarrow t}{\rightarrow}f(x(t_2))$$. This why \texttt{update\_acceleration} gets called in the \texttt{simulate} function before iterating over time. This why \texttt{update\_acceleration} gets called in the \texttt{simulate} function before iterating over time.
-\pagebreak
 \begin{lstlisting}[language=Python, caption=Iterates the positions by Velocity Verlet]
 def iterate(
         dt: float|int,
@@ -210,9 +209,8 @@ def iterate(
     integrate_velocity(particles,dt)
     pass
 \end{lstlisting}
-\pagebreak
 We shall start by considering the function necessary for the first and third step: \texttt{update\_acceleration} - consevably the most interesting one. This function takes \texttt{Particle} and \textit{box} and updates the acceleration fields \textit{ax2} and \textit{ay2} of the \texttt{Particle}. 
-
+\pagebreak
 \subsubsection{Update Acceleration}
 
 To update the acceleration fields all the forces between all particles need to be fetched, 
