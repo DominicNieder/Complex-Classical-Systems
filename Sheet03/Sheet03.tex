@@ -1,10 +1,51 @@
-\includegraphics{preamble.tex}
+\documentclass{article}
+
+\usepackage[english]{babel}
+
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amsfonts}
+\usepackage{tikz}
+\usepackage[plain]{algorithm}
+\usepackage{algpseudocode}
+
+\usepackage[plain]{algorithm}
+% For code snippets
+\usepackage{listings}
+\usepackage{color}
+
+% Define colors for code
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegray},
+    keywordstyle=\color{blue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=4
+}
+
+\lstset{style=mystyle}
 
 \lstset{style=mystyle}
 
 \title{
     \vspace{2in}
-    \textmd{\textbf{Homework: Velocity Verlet \& Lennard-Jones potential}}\\
+    \textmd{\textbf{Homework: Minimization: Steepest descent}}\\
     \normalsize\vspace{0.1in}\small{Due on Friday 1.11 at 10:15am}\\
     \vspace{0.1in}
     \vspace{3in}
@@ -18,8 +59,164 @@
 \maketitle
 
 \section{Intorduction}
+When simulating particles, we like to control the energy available to the system e.g. in the form temperature or kinetic energy. In order of this it is good to think how to initialize the MD simulation. We like to make sure, that the simulated system starts out of the minimum of the free energy landscape. To do so mimization algorithem is needed that searches for minima in the high dimensional potential landscape. Minimization algorithems are not only for control and initialisation but also for getting an understanding of the potential landscape.
+
+One of minimization algorithems is called Steepest descent (SD) minimization. It is the goal of this essay to show an implementation of the SD algorithm. Then to compare the simulation with a prior minimization of positions in the potential landscape to and without minimization.  
+
+\section{Implementation \& changes to the Code}
 
 
+\subsection{Initialization and reusability of positions}
+First off, the initialization functions were changed. The function \texttt{initiate\_particles\_on\_grid} that only returns positions on a grid and \texttt{initiate\_velocities} that returns velocity vector in randomized direction. These changes were made mainly for readability and reuseability. Now \texttt{initialize\_particles\_on\_grid} can be written with those two functions \ref{ll:initialize_particles_on_grid}. Furthermore the positions can be loaded from an external file with the function \texttt{load\_array\_from\_file}, if the positions should be newly generated, the positions get saved to a file with \texttt{save\_array\_to\_file}.
+
+\begin{lstlisting}[language=Python, caption=Slight changes to the initialization. This is the function that only return particle positions that lie on a grid.]
+def initiate_positions_on_grid(
+        n_particles: int,
+        box: tuple[float|int, float|int]
+) -> NDArray[np.float64]:
+    """
+    Returns n positions(x,y) that that are equally spaced on a grid, inside the box.
+    """
+    grid_sections = int(np.ceil(np.sqrt(n_particles)))  # find the number of colums & rows
+    
+    # even spacing
+    x_spacing = box[0]/grid_sections 
+    y_spacing = box[1]/grid_sections
+    # makes grid coordinates
+    x_positions, y_positions = np.meshgrid(
+        np.arange(grid_sections) * x_spacing, 
+        np.arange(grid_sections) * y_spacing
+    )
+    return np.array([x_positions.flatten()[:n_particles], y_positions.flatten()[:n_particles]])
+\end{lstlisting}
+
+\begin{lstlisting}[language=Python, caption=Slight changes to the initialization. This is the function that returns randomized velocity direction.]
+def initiate_velocities(
+        n_particles: int,
+        velocity: float
+) -> NDArray[np.float64]:
+    return velocity * (np.random.rand(2,n_particles) - 0.5, ) 
+\end{lstlisting}
+
+\begin{lstlisting}[language=Python, caption=Slight changes to the initialization. This is how the newly implemented initialization function looks.] 
+def initialize_particles_on_grid(
+    n_particles: int, 
+    box: tuple[float|int, float|int], 
+    mass: float, 
+    velocity: float,
+    add_jitter: float= 0.0,
+    data_file_location: str= "position_data.txt",
+    load_positions: bool= False,
+) -> Particle:
+    """
+    Particles a regular grid within a given spacing.\n
+    Random velocity directions. \n
+    Returns: Particle with initialized positions and velocities. 
+    """
+    positions=np.zeros( (2,n_particles) )
+    if load_positions and os.path.isfile(data_file_location):
+        print("loading positions from "+data_file_location+"!") 
+        positions+= load_array_from_file(
+            data_file_location
+            )
+    else:
+        print("Initialiszing new positions")
+        positions+= initiate_positions_on_grid(
+            n_particles= n_particles,
+            box= box
+            )
+        positions+= (np.random.rand(2,n_particles)-0.5)* add_jitter
+        save_array_to_file(
+            txt_file_path= data_file_location,
+            data_array= positions
+            )
+    v = initiate_velocities(n_particles=n_particles,velocity=velocity) 
+    return Particle(
+        n=n_particles,
+        m=mass,
+        x=positions[0,:],
+        y=positions[1,:],
+        vx=v[0,:],
+        vy=v[1,:]
+    )
+\end{lstlisting} \label{ll:initialize_particles_on_grid}
+
+
+\begin{lstlisting}[language=Python, caption=This is a function that saves an array to a file.]
+def save_array_to_file(
+        txt_file_path: str,
+        data_array: NDArray[np.float64]
+) -> None:
+    np.savetxt(txt_file_path,data_array, delimiter=' ')
+    pass
+\end{lstlisting}
+
+
+\begin{lstlisting}[language=Python, caption=This function loads saved positions from a files.]
+def load_array_from_file(
+        txt_file_path: str
+) -> NDArray[np.float64]:
+    return np.loadtxt(txt_file_path,delimiter=' ')
+\end{lstlisting}
+
+\subsection{Steepest Descent Algorithm}
+
+The steepest descent algorithm not yet debugged and funcitonal - therefore there redundant variables and plotting functioncs which would be removed when finished testing. \\
+The idea is to determine the Energy of at the beginning. Then to determine the force direction with the known function (compare last handin to sheet 2) for the particle trajectory
+
+
+\begin{lstlisting}[language=Python, caption=This is the steepest descent algorithm. As there are still unfixed buggs there are a few functions and variables implemented in order to help with debugging (e.g.: plot-functions, list for energy values, list of positions). These would be removed after successfully implementing the code.]
+def steepest_decent(
+        particles: Particle,
+        box: tuple[float|int, float|int],
+        step_size: float
+) -> NDArray[np.float64]:
+    """
+    Takes (randomly initiated) partilces and finds (local) minimum with precission of minimum precision. \n
+    The velocities should be zero and reinitialised after the minimization.
+    """
+    pos_data=np.array([])
+    energy_data=np.array([])
+    plt.ion()
+    figure, ax = plt.subplots(figsize=(10, 8))
+    line1, = ax.plot(x, y)
+    plt.title("analyze steepest descent")
+    plt.xlabel("iteration step [nm]")
+    plt.ylabel("y[]")
+    compare_to_e_pot1= potential_Energy(
+            position_x_data= particles.x,
+            position_y_data= particles.y,
+            box= box
+        )
+    np.append(energy_data,compare_to_e_pot1)
+    np.append(pos_data,np.array([particles.x, particles.y]))
+    update_accelerations(particles=particles, box=box)
+    re_scale_acceleration(particles=particles, scaling_factor=step_size)
+    particles.x= (particles.x+particles.ax2)%box[0]
+    particles.y= (particles.y+particles.ay2)%box[1]
+    compare_to_e_pot2=potential_Energy(
+            position_x_data= particles.x,
+            position_y_data= particles.y,
+            box= box
+        )
+    np.append(energy_data, compare_to_e_pot2)
+    np.append(pos_data, np.array([particles.x, particles.y]))
+    while compare_to_e_pot2 <= compare_to_e_pot1:
+        # print(compare_to_e_pot2)
+        compare_to_e_pot1=compare_to_e_pot2
+        update_accelerations(particles=particles, box=box)
+        re_scale_acceleration(particles=particles, scaling_factor=step_size)
+        particles.x= (particles.x+particles.ax)%box[0]
+        particles.y= (particles.y+particles.ax)%box[1]
+        compare_to_e_pot2=potential_Energy(
+                position_x_data= particles.x,
+                position_y_data= particles.y,
+                box= box
+            )
+        np.append(energy_data,compare_to_e_pot2)
+        np.append(pos_data,np.array([particles.x, particles.y]))
+    return np.array([energy_data, pos_data])
+\end{lstlisting}
 
 \section{Solution}
 
