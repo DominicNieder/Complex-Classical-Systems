@@ -1,11 +1,54 @@
 \documentclass{article}[a4paper]
 
-\include{preamble}
+\usepackage[english]{babel}
+
+\usepackage{subcaption}
+\usepackage{graphicx}
+
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amsfonts}
+\usepackage{tikz}
+\usepackage[plain]{algorithm}
+\usepackage{algpseudocode}
+
+\usepackage[plain]{algorithm}
+% For code snippets
+\usepackage{listings}
+\usepackage{color}
+
+% Define colors for code
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+
+\lstdefinestyle{mystyle}{
+backgroundcolor=\color{backcolour},
+commentstyle=\color{codegray},
+keywordstyle=\color{blue},
+numberstyle=\tiny\color{codegray},
+stringstyle=\color{codepurple},
+basicstyle=\ttfamily\footnotesize,
+breakatwhitespace=false,         
+breaklines=true,                 
+captionpos=b,                    
+keepspaces=true,                 
+numbers=left,                    
+numbersep=5pt,                  
+showspaces=false,                
+showstringspaces=false,
+showtabs=false,                  
+tabsize=4
+}
+
+\lstset{style=mystyle}
+
 
 \title{
     \vspace{2in}
-    \textmd{\textbf{Homework: Minimization: Steepest descent}}\\
-    \normalsize\vspace{0.1in}\small{Due on Friday 1.11 at 10:15am}\\
+    \textmd{\textbf{Homework: Random Walk and Entropy}}\\
+    \normalsize\vspace{0.1in}\small{Due on Friday 22.11 at 10:15am}\\
     \vspace{0.1in}
     \vspace{3in}
 }
@@ -15,5 +58,63 @@
 
 
 \begin{document}
+
+\section{Introduction}
+
+In this exercise we study how a gaussian distribution follows from a simple one-dimensional random walk
+
+\section{Random Walk}
+\subsection{Implentation \& Results}
+
+The Implentation of the random walk is simple and quick to implement. 
+We take $N=20000$ as the total number of iteration steps and $number\_of\_particles=10000$. The positions get initaited with $x_i=0$ for all particles $i$. The variable $x$ contains all the positions for all iteration steps.\\
+Within the for-loop we generate an array of uniformly sampled random numbers in the variable $dw$, which get conditioned in the next step with the \texttt{np.where}-function and replaced with $-1$ or $1$ respectivly. Last but not least the the positions get updated with in respect to the previous positions and the randomly sampled numbers.
+
+\begin{lstlisting}
+N=20000  
+number_of_particles=10000  
+x = np.zeros((N+1,number_of_particles),dtype=int) 
+for i in range(N):
+    dw= np.random.uniform(low=0.0,high=1.0,size=number_of_particles)  
+    dw = np.where(dw<0.5, -1,1)  
+    x[i+1,:]= x[i]+dw  # then the position get iterated
+\end{lstlisting}
+
+
+\begin{figure}
+\centering
+\begin{subfigure}{0.4\textwidth}
+    \includegraphics[width=\textwidth]{RW_N100.png}
+    \caption{This is the resulting distribution of a random walk for $N=100$ iterations.}
+    \label{fig:first}
+\end{subfigure}
+\hfill
+\begin{subfigure}{0.4\textwidth}
+    \includegraphics[width=\textwidth]{RW_N1000.png}
+    \caption{This is the resulting distribution of a random walk for\\ $N=1000$ iterations.}
+    \label{fig:second}
+\end{subfigure}
+\hfill
+\begin{subfigure}{0.4\textwidth}
+    \includegraphics[width=\textwidth]{RW_N10000.png}
+    \caption{This is the resulting distribution of a random walk for $N=10000$ iterations.}
+    \label{fig:third}
+\end{subfigure}
+\hfill
+\begin{subfigure}{0.4\textwidth}
+    \includegraphics[width=\textwidth]{RW_N20000.png}
+    \caption{This is the resulting\\ distribution of a random walk for $N=20000$ iterations.}
+\end{subfigure}
+\caption{The resulting distributions of different iteration length of a random walk.}
+\label{fig:figures}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \begin{subfigure}[position][height][inner pos]{width}
+        
+    \end{subfigure}
+\end{figure}
+
 
 \end{document}
