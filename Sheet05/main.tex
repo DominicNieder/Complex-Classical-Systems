@@ -67,11 +67,12 @@ In this exercise we study how a gaussian distribution follows from a simple one-
 \subsection{Implentation \& Results}
 
 The Implentation of the random walk is simple and quick to implement. 
-We take $N=20000$ as the total number of iteration steps and $number\_of\_particles=10000$. The positions get initaited with $x_i=0$ for all particles $i$. The variable $x$ contains all the positions for all iteration steps.\\
-Within the for-loop we generate an array of uniformly sampled random numbers in the variable $dw$, which get conditioned in the next step with the \texttt{np.where}-function and replaced with $-1$ or $1$ respectivly. Last but not least the the positions get updated with in respect to the previous positions and the randomly sampled numbers.
+We take $N=20000$ as the total number of iteration steps and $number\_of\_particles=10000$. The positions get initaited with $x_i=0$ for all particles $i$. The variable $x$ contains all the positions for all iteration steps. There is also the variable $n_bins$ which is defined for the histogramms \ref{fig:probability_disti}. \\
+Within the for-loop we generate an array of uniformly sampled random numbers in the variable $dw$, which get conditioned in the next step with the \texttt{np.where}-function and replaced with $-1$ or $1$ respectivly. Last but not least the the positions get updated with in respect to the previous positions and the randomly sampled numbers. T
 
 \begin{lstlisting}
-N=20000  
+N=20000 
+n_bins=60
 number_of_particles=10000  
 x = np.zeros((N+1,number_of_particles),dtype=int) 
 for i in range(N):
@@ -85,35 +86,47 @@ for i in range(N):
 \centering
 \begin{subfigure}{0.4\textwidth}
     \includegraphics[width=\textwidth]{RW_N100.png}
-    \caption{This is the resulting distribution of a random walk for $N=100$ iterations.}
+    \caption{$N=100$}
     \label{fig:first}
 \end{subfigure}
 \hfill
 \begin{subfigure}{0.4\textwidth}
     \includegraphics[width=\textwidth]{RW_N1000.png}
-    \caption{This is the resulting distribution of a random walk for\\ $N=1000$ iterations.}
+    \caption{$N=1000$}
     \label{fig:second}
 \end{subfigure}
 \hfill
 \begin{subfigure}{0.4\textwidth}
     \includegraphics[width=\textwidth]{RW_N10000.png}
-    \caption{This is the resulting distribution of a random walk for $N=10000$ iterations.}
+    \caption{$N=10000$}
     \label{fig:third}
 \end{subfigure}
 \hfill
 \begin{subfigure}{0.4\textwidth}
     \includegraphics[width=\textwidth]{RW_N20000.png}
-    \caption{This is the resulting\\ distribution of a random walk for $N=20000$ iterations.}
+    \caption{$N=20000$}
 \end{subfigure}
-\caption{The resulting distributions of different iteration length of a random walk.}
-\label{fig:figures}
+\caption{In these four figures the distribuiton in (number of counts of particles) of a random walk are displayed for variouse iterations steps. It is important to note, that the scale of the a-axis changes dramatically for the four figures.}
+\label{fig:probability_disti}
 \end{figure}
 
 \begin{figure}
     \centering
-    \begin{subfigure}[position][height][inner pos]{width}
-        
+    \begin{subfigure}{0.4\textwidth}
+       \includegraphics[width=\textwidth]{expectationvalues.png} 
+       \caption{Mean}
     \end{subfigure}
+    \hfill 
+    \begin{subfigure}{0.4\textwidth}
+        \includegraphics[width=\textwidth]{variancenvalues.png}
+        \caption{Variance}
+    \end{subfigure} 
+    \hfill 
+    \begin{subfigure}{0.4\textwidth}
+        \includegraphics[width=\textwidth]{scewness.png}
+        \caption{Scewness}
+    \end{subfigure}
+    \caption{These three figures display how statistical variables on the y-axis develope with increasing iteration steps on the x-axis of a random walk. In figure (a) the mean values are shown; In figure (b) the developement of the variance is shown; In figure (c) the developement of the scewness can be seen.}
 \end{figure}
 
 
