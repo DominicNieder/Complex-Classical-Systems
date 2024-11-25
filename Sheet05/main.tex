@@ -70,9 +70,9 @@ The Implentation of the random walk is simple and quick to implement.
 We take $N=20000$ as the total number of iteration steps and $number\_of\_particles=10000$. The positions get initaited with $x_i=0$ for all particles $i$. The variable $x$ contains all the positions for all iteration steps. There is also the variable $n_bins$ which is defined for the histogramms \ref{fig:probability_disti}. \\
 Within the for-loop we generate an array of uniformly sampled random numbers in the variable $dw$, which get conditioned in the next step with the \texttt{np.where}-function and replaced with $-1$ or $1$ respectivly. Last but not least the the positions get updated with in respect to the previous positions and the randomly sampled numbers. T
 
-\begin{lstlisting}
+\begin{lstlisting}[language=python]
 N=20000 
-n_bins=60
+n_bins=25
 number_of_particles=10000  
 x = np.zeros((N+1,number_of_particles),dtype=int) 
 for i in range(N):
@@ -81,8 +81,10 @@ for i in range(N):
     x[i+1,:]= x[i]+dw  # then the position get iterated
 \end{lstlisting}
 
+In the figures \ref{fig:probability_disti} we can four bin plots \ref{fig:first} \ref{fig:second} \ref{fig:third} and \ref{fig:fourth} that count positions in a one-dimensional space. Each showing the particle distribution of the same random walk for different iteration - counted with $25$ bins respectivly. Starting with the lowest iteration number in \ref{fig:first} and the most in \ref{fig:fourth} that has the largest iteration number. One can clrearly recognise how the gaussian bell-shaped distribution emerges from the randomwalk alone.  \\
+The figures from \ref{fig:first} \ref{fig:fourth} show a tendency of becoming more smooth for larger total timesteps. This can especially be seen when considering the next set of plots in figure \ref{fig:statistics_of_RW}.
 
-\begin{figure}
+\begin{figure}[h]
 \centering
 \begin{subfigure}{0.4\textwidth}
     \includegraphics[width=\textwidth]{RW_N100.png}
@@ -105,29 +107,228 @@ for i in range(N):
 \begin{subfigure}{0.4\textwidth}
     \includegraphics[width=\textwidth]{RW_N20000.png}
     \caption{$N=20000$}
+    \label{fig:fourth}
 \end{subfigure}
-\caption{In these four figures the distribuiton in (number of counts of particles) of a random walk are displayed for variouse iterations steps. It is important to note, that the scale of the a-axis changes dramatically for the four figures.}
+\caption{In these four figures the distribuiton in (number of counts of particles) of a random walk are displayed for variouse iterations steps. It is important to note, that the scale of the a-axis changes dramatically for the four figures. For all plots the positions are counted in $25$ bins.}
 \label{fig:probability_disti}
 \end{figure}
 
-\begin{figure}
+The three figure \ref{fig:mean} to \ref{fig:skew} show a time-dependant statistical analysis of the random walk, of which the distributions are displayed as well.
+\\ Figure \ref{fig:mean} shows the developement of the mean, figure \ref{fig:var} shows how the variance developes in time, and the third plot in figure \ref{fig:skew} displays the timedependant skew.\\
+It seems on first sight, that the mean as well as the skew look like a random walk of a single particle in their own right, though this is not supported by any mathematical evidence.\\
+In contrast to the \ref{fig:mean} and \ref{fig:skew} the plot of the variance in figure \ref{fig:var} dispalys a linear increasing function. Suggesting that there is structure here, that can be analysed in particular with the variance. A matter of coincidence is that when considering brownian motion, descibed by the Langevin Equation one also finds a linear dependance of the mean squared displacement of the diffusion constant. Though mathematical evidence would be required to support this claim!
+
+\begin{figure}[h!]
     \centering
     \begin{subfigure}{0.4\textwidth}
        \includegraphics[width=\textwidth]{expectationvalues.png} 
        \caption{Mean}
+       \label{fig:mean}
     \end{subfigure}
     \hfill 
     \begin{subfigure}{0.4\textwidth}
         \includegraphics[width=\textwidth]{variancenvalues.png}
         \caption{Variance}
+        \label{fig:var}
     \end{subfigure} 
     \hfill 
     \begin{subfigure}{0.4\textwidth}
         \includegraphics[width=\textwidth]{scewness.png}
         \caption{Scewness}
+        \label{fig:skew}
     \end{subfigure}
     \caption{These three figures display how statistical variables on the y-axis develope with increasing iteration steps on the x-axis of a random walk. In figure (a) the mean values are shown; In figure (b) the developement of the variance is shown; In figure (c) the developement of the scewness can be seen.}
+    \label{fig:statistics_of_RW}
 \end{figure}
+\pagebreak
 
+\section{Entropy production}
+To study the entropy production we conduct a set ensembles of simulations with hard spheres in a box with reflecting boundry conditions. The ensembles will be independant simulations of varying initial positions and velocity directions. We will considere three ensemble sizes \textbf{(1)}: 5, \textbf{(2)}: 25 and \textbf{(3)}: 50. For each we shall vary the number of hard spheres to be \textbf{(a)}: 5, \textbf{(b)}: 25 and \textbf{(c)}: 50. \\
+The spheres shall be initiated with a certain velocity in one half of the simulation box and 
+
+
+\subsection{Implentation}
+
+Here is the slightly modified Particle class, that contains all the particles of one simulation. Mainly the vecotors of position and velocity were collected into the one variabel - thus initiation occures with a $2$ by $number$ matrix, where the latter referres to the number of particles.
+\begin{lstlisting}[language=python]
+class Particle:
+    def __init__(
+        self,
+        number: int,
+        mass: float | int,
+        radius: float | int,
+        dimensions: int = 2
+    ):
+        self.n: int = number
+        self.m: float = float(mass)
+        self.d: int = dimensions
+        self.r: float = radius
+
+        self.x: NDArray[np.float64]= np.zeros((dimensions,number))
+        self.v: NDArray[np.float64]= np.zeros((dimensions,number))
+\end{lstlisting}
+
+
+
+\begin{lstlisting}[language=python]
+def initiate_positions_on_grid(
+        number_of_particles: int,
+        box: tuple[float|int, float|int]
+) -> None:
+    """
+    Initializes 2D positions on a Grid with even spacing.
+
+    Parameters:
+                
+        n_particles:(int)
+                -> number of particles
+
+        box:(tuple[number,number]) 
+                -> box size (in [nm])
+
+    Return:
+
+        (NDArray[float, shpae=(dimension, number of particles)])
+                -> list of vectors of positons that are aranged on a grid
+    """
+    grid_sections = int(np.ceil(np.sqrt(number_of_particles)))+1  # find the number of colums & rows
+
+    # even spacing
+    x_spacing = box[0]/grid_sections 
+    y_spacing = box[1]/grid_sections
+    # makes grid coordinates
+    x, y= np.meshgrid(
+        np.arange(grid_sections) * x_spacing, 
+        np.arange(grid_sections) * y_spacing
+    )
+    positions= np.array([x.flatten()[:number_of_particles]+x_spacing/2, y.flatten()[:number_of_particles]+y_spacing/2])
+    print("init positions\n",positions)  
+    return positions
+\end{lstlisting}
+
+\begin{lstlisting}[language=python]
+def initiate_velocities(
+        n_particles: int,
+        dimension:int,
+        velocity: float
+) -> NDArray[np.float64]:
+    """
+    Initiating random velocities.
+    """
+    velocities=  (np.random.rand(dimension,n_particles) - 0.5)
+    velocities= velocity/np.linalg.norm(velocities) * velocities
+    print("init velocities\n", velocities)
+    return velocities
+\end{lstlisting}
+
+\begin{lstlisting}[language=python]]
+def reflecting_boundry_conditions(
+        particles :Particles,
+        box: tuple[float|int,float|int]
+        ) -> None:
+    """
+    Reflecs particles on the boundries given by the box.
+
+    Parameters:
+
+        particle: (Particle)
+                -> particles of the simulation
+
+        box: (tuple[number, number])
+                -> box in which the particles are kept 
+    """
+    for dim in range(particles.d):
+            particles.v[dim, :] = np.where(
+                    particles.x[dim, :]-particles.r <0,
+                    -particles.v[dim, :],
+                    particles.v[dim, :]
+                )
+            particles.v[dim, :] = np.where(
+                    particles.x[dim, :] + particles.r> box[1],
+                    -particles.v[dim, :],
+                    particles.v[dim, :]
+                )
+    pass
+\end{lstlisting}
+
+\begin{lstlisting}[language=python]
+def iterate(
+        particles: Particles,
+        box: tuple,
+        dt:float
+):
+    """
+    Tterates the particles with elastic collision.
+    """
+    for i in range(particles.n):
+        reflecting_boundry_conditions(particles=particles, box=box) 
+
+        for j in range(i,particles.n):
+            r_rel= particles.x[:,i]-particles.x[:,j]
+            d_rel= np.linalg.norm(r_rel)
+            
+            if d_rel-particles.r <= 0 and d_rel!=0:
+                r_pro= r_rel/d_rel
+                dv= np.dot((particles.v[:,i]-particles.v[:,j]),r_pro) * r_pro
+                particles.v[:,i] -= dv
+                particles.v[:,j] += dv
+        particles.x+= particles.v*dt  
+\end{lstlisting}
+
+\begin{lstlisting}[language=python]
+    def iterate(
+        particles: Particles,
+        box: tuple,
+        dt:float
+):
+    """
+    Tterates the particles with elastic collision.
+    """
+    for i in range(particles.n):
+        reflecting_boundry_conditions(particles=particles, box=box) 
+
+        for j in range(i,particles.n):
+            r_rel= particles.x[:,i]-particles.x[:,j]
+            d_rel= np.linalg.norm(r_rel)
+            
+            if d_rel-particles.r <= 0 and d_rel!=0:
+                r_pro= r_rel/d_rel
+                dv= np.dot((particles.v[:,i]-particles.v[:,j]),r_pro) * r_pro
+                particles.v[:,i] -= dv
+                particles.v[:,j] += dv
+        particles.x+= particles.v*dt  
+\end{lstlisting}
+
+
+\begin{lstlisting}[language=python]
+def simulate_ensemble(
+        num_particle: int,
+        box: tuple,
+        dt: float,
+        time_steps: int,
+        mass: float,
+        velocity: float,
+        radius: float,
+        ensemble_size: int,
+)-> NDArray[np.float32]:
+    """
+    Simulates an ensemble of simulations of the same kind in a for loop.
+
+    Return: 
+
+        data: (NDArray[float, shape=(ensemble_size, time_steps, dims, num_particle)])
+    """
+    ensemble: list[Particles]= [Particles(number=num_particle,mass=mass,radius=radius,dimensions=len(box)) for i in range(ensemble_size)]   
+    print("Ensemble size:", len(ensemble))
+    e=0
+    data= np.zeros(((ensemble_size, time_steps, len(box), num_particle)))
+    for p in ensemble:
+        print("\n\n")
+        p.x= initiate_positions_on_grid(number_of_particles=p.n,box=(box[0]/2,box[1]))
+        p.v= initiate_velocities(n_particles=p.n, dimension=p.d, velocity=velocity)
+        simulate(particles=p,box=box, Time_steps=time_steps, dt=dt, data=data[e])
+        e+=1
+    return data
+\end{lstlisting}
 
 \end{document}
