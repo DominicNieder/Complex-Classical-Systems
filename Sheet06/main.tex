@@ -62,8 +62,84 @@ tabsize=4
 
 \section{Radial distribution fuction}
 \subsection{Imlementation}
-\subsection{Results}
 
+The \texttt{Particle} class again contains all variables. 
+Since the last sheet, miniscule changes have been introduced i.e. \textit{self.box} which contains all corners of the box, which will be used for distance calculations between particles. 
+Then additionally, the particles shall also get initiated to the initial positions (regular grid) and velocities (randomly) get initiated directly and get displayed.
+\begin{lstlisting}[language=Python]
+class Particles:
+    def __init__(
+        self,
+        number: int,
+        mass: float | int,
+        velocity: float,
+        radius: float | int,
+        box: tuple[float|int, float|int]
+    ):
+        """
+        Initiate particles with unpecified positions, velocities, accelerations.
+        """
+        self.n: int = number
+        self.m: float = float(mass)  #  kg
+        self.d: int = len(box)
+        self.r: float = radius  # nm
+        self.box: NDArray[np.float32]= np.array([[0,box[0],0,box[0]],[0,0,box[1],box[1]]])  # nm
+        print("ititated",self.n, "particles:\n\tradius",self.r,"\tmass",self.m,"\tdimensions",self.d)
+        self.x: NDArray[np.float32]= initiate_positions_on_grid(number,box) 
+        self.v: NDArray[np.float32]= initiate_velocities(number, self.d, velocity)
+        fig = plt.figure()
+        ax = fig.add_subplot()
+        ax.set_title("Initiation: Positions")
+        ax.scatter(self.x[0,:], self.x[1,:])
+        ax.grid(True)
+        plt.show()      
+        plt.close()
+\end{lstlisting}
+
+Then the \texttt{relative\_distances} function was implemented, so that the nearest distance between two particles gets calculated. 
+For this no clever implementation was used, but rather a simple and straight forward one. 
+In which all possible positions get calculated and the smalles one gets passed together with its norm.
+\begin{lstlisting}[language=Python]
+def relative_distnace(
+        x_1: NDArray,
+        x_2: NDArray,
+        box: NDArray
+) -> NDArray:
+    rel6 = np.zeros((len(box[:,0]),7))
+    rel6[:,0] = x_1-x_2 
+    rel6[:,1] = x_1-x_2 + box[:,1]
+    rel6[:,2] = x_1-x_2 + box[:,2]
+    rel6[:,3] = x_1-x_2 + box[:,3]
+    rel6[:,4] = x_1-x_2 - box[:,1]
+    rel6[:,5] = x_1-x_2 - box[:,2]
+    rel6[:,6] = x_1-x_2 - box[:,3]
+    d6 = np.linalg.vector_norm(rel6, axis=0)
+    min = np.argmin(d6)
+    return rel6[:,min], d6[min]
+\end{lstlisting}
+
+To determine the kinematics of two colliding particles, the function \texttt{hard\_sphere\_collision} was implemented. 
+This function iterates through each pairs of particles $i$ and $j$ determines the relative distance vector and its' norm with \texttt{relative\_distance}. 
+The collision condition is met when the distance is smaller than twice the radius and its kinemativs gets determined as on the priviouse task sheet. 
+\begin{lstlisting}[language=Python]
+def hard_sphere_collision(
+        particles:Particles,
+):
+    for i in range(particles.n):
+        for j in range(i+1,particles.n):
+            r_rel, d_rel= relative_distnace(particles.x[:,i], particles.x[:,j],particles.box) 
+            if d_rel-particles.r <= 0:
+                # print("collision detected!")
+                r_pro= r_rel/d_rel
+                dv= np.dot((particles.v[:,i]-particles.v[:,j]),r_pro) * r_pro
+                particles.v[:,i] -= dv
+                particles.v[:,j] += dv
+\end{lstlisting}
+
+
+
+
+\subsection{Results}
 
 \section{Potential of mean force}
 \subsection{implementation}
