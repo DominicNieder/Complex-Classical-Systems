@@ -136,12 +136,79 @@ def hard_sphere_collision(
                 particles.v[:,j] += dv
 \end{lstlisting}
 
+The iterate function calls the \texttt{hard\_sphere\_collision} function and iterates all positions and makes sure the particles are contained by their periodic boundry conditions. The function \texttt{simulate} calls this function then to run the simulation, this function returns \textit{data} of the simulation run.
+\begin{lstlisting}[language=Python]
+def iterate(
+        particles: Particles,
+        dt:float
+):
+    hard_sphere_collision(particles=particles)
+    particles.x+= particles.v*dt  
+    particles.x = np.mod(particles.x, [[particles.box[0,3]],[particles.box[1,3]]]) 
+\end{lstlisting}
 
+Coming to the radial distribution function \texttt{rdf}. 
+It takes \textit{particles}, \textit{data} and \textit{n\_bins} as arguments. 
+The \textit{data} comes from the simulation and \textit{n\_bins} gives the area between $r, r+dr$. 
+This function has three for loops. 
+One, for all time steps. 
+Two for each particle and the third through all remaining particles.
+In the two forloops the distances between all particles gets determined from which a histogram gets created. 
+Then because this historgram consideres the mean of $n$ particles we devide by \textit{particles.n} and also by \textit{T} as we take the timewise mean as well. 
+We choose the bounds of the histogram by taking the distance from the center of the box to one corner $\sqrt((\textit{box[0,3]}/2)^2+(\textit{box[1,3]}/2)^2)$, which should be the maximal distance between two particles in a box under periodic boundry conditions.
+The minimal distance between two particles should be $2\textit{particles.r}$.
+Never the less, to see the how well the simulation performs (considering overlapping spheres) we start collecting bin points at \textit{particles.r}.
 
+\begin{lstlisting}
+def rdf(
+        particles: Particles,
+        data: NDArray,
+        n_bins: int
+) -> NDArray:
+    T= len(data[:,0,0])
+    rho = particles.n/(particles.box[0,3]*particles.box[1,3])   # isotropic density
+    rdf_hist= np.zeros((T,n_bins))
+    distances= np.zeros((particles.n,particles.n))
+    for t in range(T):
+        rdf_histi=np.zeros(n_bins)
+        for i in range(particles.n):
+            for j in range(i+1,particles.n):
+                distances[i,j]=relative_distnace(data[t,:,i],data[t,:,j],particles.box)[1]
+                distances[j,i]=distances[i,j]
+        #print(distances)
+        rdf_histi, r=np.histogram(distances,n_bins,(particles.r, np.sqrt((particles.box[0,3]/2)**2+(particles.box[1,3]/2)**2)))
+        rdf_hist[t] = rdf_histi
+        rdf_hist=rdf_hist/particles.n/T
+    return np.sum(rdf_hist,axis=0)/(rho*2*np.pi), r[:-1]
+\end{lstlisting}
 
 \subsection{Results}
+Resulting from the simulation and the radial distribution function we get the following graph \ref{fig:rdf}.
+It seems to be stagnating -- though increasing density of particles with increasing distance.
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.6\textwidth]{rdf.png}
+    \caption{This figure displays the mean radial distribution function. On the x-axis we see the relative distances. On the y-axis the distribution values. We took values up until $x=\sqrt{2(\textit{box}/2)^2}$nm as this should be the minimal possible distance of two particles in periodic boundry conditions.} \label{fig:rdf}
+\end{figure}
+
 
 \section{Potential of mean force}
+The only functions needed to be implemented for the second part of the exercise were the functions to determine the temperature of the system (thus also mean kinetik energy) as well as the mean free energy (including the partition function).
+The mean kinetic energy is determined by summing over all velocities and deviding by the number of particles.
+\begin{lstlisting}[language=Python]
+def mean_kinetik_energy(particles:Particles) -> float:
+    """Determines mean kinetik energy of particles"""
+    return particles.m/2*np.sum( np.linalg.vecdot( particles.v,particles.v, axis=0))/particles.n
+\end{lstlisting}
+Then to obtain the temperature one devides by the Boltzmann constant.
+\begin{lstlisting}
+def temperature(particles:Particles) -> float:
+    """Determines Temperature of particles"""
+    k_B= 1.38e-23  
+    return mean_kinetik_energy(particles=particles)/k
+\end{lstlisting}
+
+
 \subsection{implementation}
 \subsection{Results}
 \end{document}
