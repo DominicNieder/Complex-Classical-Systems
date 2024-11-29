@@ -58,7 +58,9 @@ tabsize=4
 
 \begin{document}
 \section{Introduction}
+In this exercise it is the task to study the radial distribution function as well as the potential of mean force by example of a hard sphere simulation. These two methods of statistical analysis help visualize statistical information that is hidden by conventional mean e.g. an animation or looking at the energy landscapes. They can capture the forces that emerge though the complexity of the system itselfe.
 
+First we shall take a look at the radial distribution funciton then we hope to take a look at the potential of mean force.
 
 \section{Radial distribution fuction}
 \subsection{Imlementation}
@@ -193,6 +195,7 @@ It seems to be stagnating -- though increasing density of particles with increas
 
 
 \section{Potential of mean force}
+\subsection{implementation}
 The only functions needed to be implemented for the second part of the exercise were the functions to determine the temperature of the system (thus also mean kinetik energy) as well as the mean free energy (including the partition function).
 The mean kinetic energy is determined by summing over all velocities and deviding by the number of particles.
 \begin{lstlisting}[language=Python]
@@ -207,8 +210,27 @@ def temperature(particles:Particles) -> float:
     k_B= 1.38e-23  
     return mean_kinetik_energy(particles=particles)/k
 \end{lstlisting}
+After this we can determine the potential of mean force by the equation
+\begin{equation}
+    g(r)= \exp \Bigl\{-\frac{\Delta F(r)}{k_B T}\Bigr\}
+\end{equation}
+\begin{lstlisting}
+def potential_of_maen_force(temperature:float,rdf:NDArray) -> NDArray:
+    k_B= 1.38e-23  # J/K
+    return -np.log(rdf)*k_B*temperature   
+\end{lstlisting}
 
-
-\subsection{implementation}
 \subsection{Results}
+In this figure the potential of mean force can be seen.
+Although the radial distribution function seems as a mystory to me, the mean force potential could make sense: 
+As there are no interactions between the particles at a distance other from $2\textit{particles.r}$ we see no potential landscape.
+Only for $r$ near the boundry where the two particles would interact ($2\textit{particles.r}$).
+There we see a seemingly infinit boundry, just how the interaction potential should look.
+\begin{figure}
+    \centering
+    \includegraphics[width=0.6\textwidth]{pot_mean_force.png}
+    \caption{In this figure the potential of mean force can be seen. On the x-axis the distances are given and on the y-axis the potential mean force is given in J.}
+\end{figure}
+
+
 \end{document}
