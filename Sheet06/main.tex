@@ -120,7 +120,7 @@ def relative_distnace(
     return rel6[:,min], d6[min]
 \end{lstlisting}
 
-To determine the kinematics of two colliding particles, the function \texttt{hard\_sphere\_collision} was implemented. 
+To determine the kinematics of two colliding particles, the function\newline \texttt{hard\_sphere\_collision} was implemented. 
 This function iterates through each pairs of particles $i$ and $j$ determines the relative distance vector and its' norm with \texttt{relative\_distance}. 
 The collision condition is met when the distance is smaller than twice the radius and its kinemativs gets determined as on the priviouse task sheet. 
 \begin{lstlisting}[language=Python]
@@ -186,7 +186,7 @@ def rdf(
 
 \subsection{Results}
 Resulting from the simulation and the radial distribution function we get the following graph \ref{fig:rdf}.
-It seems to be stagnating -- though increasing density of particles with increasing distance.
+It seems to be a linear increas, increasing from $r=2particle.r$ up to $r\approx5$nm. Then the RDF decreases again very quickly. This can be understood as a preferreed occupied distance between particles. 
 \begin{figure}[h!]
     \centering
     \includegraphics[width=0.6\textwidth]{rdf.png}
@@ -223,10 +223,11 @@ def potential_of_maen_force(temperature:float,rdf:NDArray) -> NDArray:
 \subsection{Results}
 In this figure the potential of mean force can be seen.
 Although the radial distribution function seems as a mystory to me, the mean force potential could make sense: 
-As there are no interactions between the particles at a distance other from $2\textit{particles.r}$ we see no potential landscape.
-Only for $r$ near the boundry where the two particles would interact ($2\textit{particles.r}$).
-There we see a seemingly infinit boundry, just how the interaction potential should look.
-\begin{figure}
+As there are no interactions between the particles at a distance other from $2\textit{particles.r}$ it is suprising that we see a potential landscape at all.
+We see a potential landscape on the order of $10^{-5}$J.
+This potential landscape looks like a potential well with a minimum by $r=5$nm
+For $r\approx0.4$, near the boundry, where the two particles would interact ($2\textit{particles.r}$) on the other hand, there is a seemingly infinit boundry, just how the interaction potential should look. Though the shape of the well is suprising and hints towards emergent properties of the system.
+\begin{figure}[h!]
     \centering
     \includegraphics[width=0.6\textwidth]{pot_mean_force.png}
     \caption{In this figure the potential of mean force can be seen. On the x-axis the distances are given and on the y-axis the potential mean force is given in J.}
