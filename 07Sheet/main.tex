@@ -1,0 +1,115 @@
+\documentclass{article}[a4paper]
+
+\usepackage[english]{babel}
+
+\usepackage{subcaption}
+\usepackage{graphicx}
+
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amsfonts}
+\usepackage{tikz}
+\usepackage[plain]{algorithm}
+\usepackage{algpseudocode}
+
+\usepackage[plain]{algorithm}
+% For code snippets
+\usepackage{listings}
+\usepackage{color}
+
+% Define colors for code
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+
+\lstdefinestyle{mystyle}{
+backgroundcolor=\color{backcolour},
+commentstyle=\color{codegray},
+keywordstyle=\color{blue},
+numberstyle=\tiny\color{codegray},
+stringstyle=\color{codepurple},
+basicstyle=\ttfamily\footnotesize,
+breakatwhitespace=false,         
+breaklines=true,                 
+captionpos=b,                    
+keepspaces=true,                 
+numbers=left,                    
+numbersep=5pt,                  
+showspaces=false,                
+showstringspaces=false,
+showtabs=false,                  
+tabsize=4
+}
+
+\lstset{style=mystyle}
+
+
+\title{
+    \vspace{2in}
+    \textmd{\textbf{Homework: Markov Chain Monte Carlo of multi-particle simulations with Metropolis importance sampling}}\\
+    \normalsize\vspace{0.1in}\small{Due on Friday 06.12 at 10:15am}\\
+    \vspace{0.1in}
+    \vspace{3in}
+}
+
+\author{Dominic Nieder, Awais Ahmed}
+\date{\today}
+
+\begin{document}
+
+\section{Introduction}
+
+\section{Implementation}
+
+For the implementation of the Markov Chain Monte Carlo of multi-particle simulations with Metropolis importance sampling (MCMCMI) a few slight changes to the former functions were made.
+The most significant change was in the data structure.
+Where we were working with vectors before we changed to a matrix representation of the system. 
+A matrix that contains all relative positions to another. 
+The matrix was initiated by the function \texttt{initiate\_distances} and takes \textit{positions} and \textit{box} as arguments and returns a matrix of distances. 
+Here one could, supposedly, disregard the selfe-distance where $i=j$.
+To initiate the matrix the function \texttt{relative\_distances} was used to obtain all the distances.
+The main benefit of using this matrix formalism is that the distances dont need to be calculated repeatedly.
+\begin{lstlisting}[language=Python]
+def initiate_distances(
+        positions: np.ndarray,
+        box: tuple
+) -> np.ndarray:
+    vec_distance= np.zeros((len(positions),len(positions),2))
+    print("shape of rel_vect=", np.shape(vec_distance))
+    for i in range(len(positions)):
+        for j in range(i,len(positions)):
+            vec_distance[i,j,:]= relative_distnace(positions[i],positions[j], box=box)
+            vec_distance[j,i,:]= -vec_distance[i,j,:]
+    return vec_distance
+\end{lstlisting}
+
+Then the function that makes that the periodic boundry conditions are met was implemented in a new way. By using a nifty trick the full box length gets subtracted of the distance vector, if the vector component is more than half of the box length, which also corresponds to the principle of minimal image.
+\begin{lstlisting}[language=Python]
+def boundry_conditions(
+    rel_vector:np.ndarray,
+    box: tuple
+) -> np.ndarray:
+    for dim in range(len(box)):
+        rel_vector[dim] -= box[dim] * np.round(rel_vector[dim] / box[dim])
+    return rel_vector
+
+def relative_distnace(
+        x_1: np.ndarray, 
+        x_2: np.ndarray, 
+        box: tuple
+):
+    rel_vector = x_1 - x_2
+    boundry_conditions(rel_vector=rel_vector, box=box)
+    return rel_vector 
+\end{lstlisting}
+
+Then we also need to implement the Lennard Jones interaction potential for the calculation of the energies. Here $C_{12}=9.847044e-6$kJ/K and $C_{6}=6.2647225e-3$kJ/K were included directly.
+\begin{lstlisting}
+def LJ_potential(r):
+    return 9.847044e-6/r**12-6.2647225e-3/r**6 
+\end{lstlisting}
+
+\section{}
+
+\end{document}
