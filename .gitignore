@@ -2,6 +2,8 @@
 .*  
 !.gitignore   
 
+# python np data
+*.npy
 
 # pdfs, images, gif, mp4 
 *.pdf
