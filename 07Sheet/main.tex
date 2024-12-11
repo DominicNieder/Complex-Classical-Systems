@@ -98,11 +98,13 @@ def relative_distnace(
         x_1: np.ndarray, 
         x_2: np.ndarray, 
         box: tuple
-):
+) -> np.ndarray:
     rel_vector = x_1 - x_2
     boundry_conditions(rel_vector=rel_vector, box=box)
     return rel_vector 
 \end{lstlisting}
+
+
 
 Then we also need to implement the Lennard Jones interaction potential for the calculation of the energies. Here $C_{12}=9.847044e-6$kJ/K and $C_{6}=6.2647225e-3$kJ/K were included directly.
 \begin{lstlisting}
@@ -110,6 +112,103 @@ def LJ_potential(r):
     return 9.847044e-6/r**12-6.2647225e-3/r**6 
 \end{lstlisting}
 
-\section{}
+The MCMCMI is then implemented as follows. In the beginning all the constants are defined. 
+The algorithm itselfe starts with the for-loop. First all possible stepps of that iteration get calculated in one array. 
+Then the norm of the distance before the \texttt{montecarlo\_step} gets taken.
+In the second for-loop over all particles we determine all current distance scalars, then we calculate the resulting energy.
+Followed by the the same procedure of the iterated position, which needs to be kept in the periodic boundry by \texttt{boundry\_conditions}.
+Then the Metropolis importance sampling follows by \texttt{if} statement. 
+\begin{lstlisting}[language=Python] 
+N=25            
+B=(5,5)     # nm
+DELTA_X=0.01       # nm
+K_B=1.38e-26  # kJ/K
+N_A=6.002e23  # mol^-1
+K_B_N_A = K_B*N_A
+print("K_B / mol",K_B_N_A)
+TEMP= 293.15  # K
+ITER=100000
 
-\end{document}
+P0 = initiate_positions_on_grid(N,B)
+r = initiate_distances(positions=P0,box=B)
+
+collect_distances=np.zeros((ITER,N,N-1))
+collect_positions=np.zeros((ITER,N,2))
+e= np.zeros((ITER,N))  # kJ/mol
+if True:
+    print("K_BT",K_B*TEMP)
+    for iter in range(ITER):
+        for par in range(N):
+            dx= montecarlo_step((2,),DELTA_X)
+
+            d1= np.linalg.norm(np.delete(r[par,:,:],obj=par,axis=0),axis=1)
+            e1= np.sum(LJ_potential(d1))
+
+            r2= r[par]+dx 
+            r2= boundry_conditions(r2,B)
+            d2= np.linalg.norm(np.delete(r2,obj=par,axis=0),axis=1)
+            e2= np.sum(LJ_potential(d2))
+
+            de= e1-e2
+            
+            # E1>=E2 or ln P >= ln q
+            if e1>=e2 :
+                r[par]=r2
+                e[iter, par]= e2
+                collect_distances[iter,par]= d2
+                #collect_positions[iter,par]=P0[par]+r[par,par]
+            else:
+                lnP=-(e2-e1)/(K_B_N_A*TEMP)
+                lnq= np.log(np.random.uniform(0,1))
+                #print("lnP",lnP,"lnq",lnq,"\nlnP-lnq=",lnP-lnq)
+                if lnP >= lnq:
+                    #print("True!")
+                    #print("lnP=",de/(K_B*TEMP))
+                    r[par]=r2
+                    e[iter, par]= e2
+                    collect_distances[iter,par]= d2
+                    #collect_positions[iter,par]=P0[par]+r[par,par]
+                else:
+                    # r[par] stays constant -> no update required 
+                    e[iter, par]= e1 
+                    collect_distances[iter,par] = d1
+                    #collect_positions[iter,par]=P0[par]+r[par,par]
+    print("MC simulation done!")
+    np.save("e5-e-4-energy-",e)
+    np.save("e5-e-4-collection_of_distances",collect_distances)
+\end{lstlisting}\label{ll:MCMCMI}
+
+The \texttt{montecarlo\_step} function takes a \textit{shape} and a \textit{step\_size} and returns a random vector of length \textit{step\_size}.
+\begin{lstlisting}[language=Python]
+def montecarlo_step(
+    shape:tuple,
+    step_size:float
+) -> np.ndarray:
+    dx= np.random.rand(*shape)-0.5
+    dx= dx / np.linalg.norm(dx,axis=0) * step_size
+    return dx
+\end{lstlisting}
+
+\section{Potential energy analyis}
+The simulation was run for \textit{ITER}$=10^5$ iterations with \textit{N}$=25$ particles in periodic boundry conditions and an Lennard Jones iteraction potential.
+In figure \ref{fig:energy_developement} the energy of the system is displayed for each iteration step. In the other figure \ref{fig:energy_distribution} the energy distribution can be seen (in number of counts) for \textit{ITER}$=20000$ iterations steps onward. The energy distribution seems to sattisfy the Boltzman distribution after these amount of iterations.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.8\textwidth]{e5-MC-Energies-per-system-iteration.png}
+    \caption{This figure displays the developement of the systems energy }
+    \label{fig:energy_developement}
+\end{figure}
+
+
+\begin{figure}[h!]
+    \centering    
+    \includegraphics[width=0.8\textwidth]{e5-20000_time-energy-system-histogram.png}
+    \caption{This figure displays the energy distribution of the system from \textit{ITER}$=20000$ iterations onward.}
+    \label{fig:energy_distribution}
+\end{figure}
+
+\newpage
+\section{RDF and free energy comparison with MD}
+
+\end{document}  
